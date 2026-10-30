@@ -1,0 +1,5 @@
+# Optional integrations — enable with env vars, see README.
+# MEMORY_BACKEND=mempalace : long-term assistant memory
+mempalace @ git+https://github.com/Huzaifaaazhar/mempalace.git
+# VECTOR_BACKEND=leann : storage-efficient vector index (PyPI build of LEANN; the GitHub repo is a multi-package monorepo)
+leann

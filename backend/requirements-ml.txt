@@ -1,0 +1,2 @@
+# Local embeddings (pulls in torch; install the CPU wheel in Docker to keep images small)
+sentence-transformers>=3.3
