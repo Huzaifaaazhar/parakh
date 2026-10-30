@@ -20,7 +20,7 @@ const PAD = { top: 16, right: 12, bottom: 24, left: 12 };
       <div class="relative">
         <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="h-40 w-full" role="img" [attr.aria-label]="summary()" (mouseleave)="hover.set(null)">
           <line [attr.x1]="PAD.left" [attr.x2]="W - PAD.right" [attr.y1]="yLow()" [attr.y2]="yLow()" class="stroke-drop/40" stroke-dasharray="4 4" />
-          <path [attr.d]="area()" class="fill-saffron/10" />
+          <path [attr.d]="area()" class="fill-pink/10" />
           <path [attr.d]="line()" class="fill-none stroke-ink" stroke-width="2" stroke-linejoin="round" />
           @for (pt of coords(); track $index) {
             <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="10" fill="transparent" (mouseenter)="hover.set($index)" (focus)="hover.set($index)" tabindex="0" />

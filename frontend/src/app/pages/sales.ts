@@ -16,7 +16,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let q = params();
-    <section class="border-b border-line bg-gradient-to-b from-[#fde7dc] to-paper">
+    <section class="border-b border-line bg-gradient-to-b from-pink-soft to-paper">
       <div class="mx-auto max-w-7xl px-4 py-10">
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sale">Sale aggregator</p>
         <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Every sale, in one place</h1>

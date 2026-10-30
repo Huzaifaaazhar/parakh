@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 
 const TINTS: Record<string, string> = {
-  fashion: 'from-saffron-soft to-[#f6dcc0]',
-  electronics: 'from-teal-soft to-[#cfe3e0]',
-  beauty: 'from-[#fbe6ea] to-[#f4d2d9]',
-  home: 'from-[#ece8f6] to-[#dcd6ee]',
+  fashion: 'from-pink-soft to-[#ffd0e5]',
+  electronics: 'from-blue-soft to-[#d3defd]',
+  beauty: 'from-[#fff0f7] to-[#ffd9ea]',
+  home: 'from-[#eef1fb] to-[#dfe5f7]',
 };
 
 const ICONS: Record<string, string> = {

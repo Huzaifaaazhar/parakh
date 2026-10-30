@@ -74,7 +74,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
         <div class="mb-5 flex flex-wrap items-center gap-2 text-sm">
           <span class="text-muted">We understood:</span>
           @for (u of understood(); track u) {
-            <span class="rounded-full bg-teal-soft px-3 py-1 text-xs font-medium text-teal">{{ u }}</span>
+            <span class="rounded-full bg-blue-soft px-3 py-1 text-xs font-medium text-blue">{{ u }}</span>
           }
         </div>
       }

@@ -61,7 +61,7 @@ import { EmptyState } from '../shared/states';
               <button type="button" class="btn-ghost" (click)="toggleWishlist()" [disabled]="wishBusy()">
                 {{ saved() ? '♥ Saved' : '♡ Save & alert me' }}
               </button>
-              <a routerLink="/assistant" [queryParams]="{ product: p.id }" class="btn-ghost text-teal">✦ Ask the assistant</a>
+              <a routerLink="/assistant" [queryParams]="{ product: p.id }" class="btn-ghost text-blue">✦ Ask the assistant</a>
             </div>
             @if (wishMessage()) {
               <p class="text-sm text-muted" role="status">{{ wishMessage() }}</p>
@@ -108,7 +108,7 @@ import { EmptyState } from '../shared/states';
             </div>
           </div>
           @if (comparison(); as c) {
-            <p class="mb-4 rounded-xl bg-teal-soft px-4 py-3 text-sm text-teal">{{ c.summary }}</p>
+            <p class="mb-4 rounded-xl bg-blue-soft px-4 py-3 text-sm text-blue">{{ c.summary }}</p>
             @if (c.alternatives.length) {
               <ul class="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
                 @for (a of c.alternatives; track a.product.id) {
@@ -120,7 +120,7 @@ import { EmptyState } from '../shared/states';
                       <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs font-semibold uppercase tracking-wider text-muted">{{ a.product.store_name }}</span>
                         @if (a.match_type === 'same_product') {
-                          <span class="rounded-full bg-saffron-soft px-2 py-0.5 text-[11px] font-semibold text-saffron-dark">Same product</span>
+                          <span class="rounded-full bg-pink-soft px-2 py-0.5 text-[11px] font-semibold text-pink-deep">Same product</span>
                         } @else {
                           <span class="text-[11px] text-muted">{{ a.similarity * 100 | number: '1.0-0' }}% similar</span>
                         }
@@ -142,7 +142,7 @@ import { EmptyState } from '../shared/states';
                           {{ a.is_cheaper ? '−' : '+' }}{{ abs(a.price_difference) | pkr }} ({{ abs(a.price_difference_pct) | number: '1.0-0' }}%)
                         }
                       </p>
-                      <button type="button" class="mt-1 text-xs font-medium text-teal hover:underline" (click)="tray.toggle(a.product)">
+                      <button type="button" class="mt-1 text-xs font-medium text-blue hover:underline" (click)="tray.toggle(a.product)">
                         {{ tray.has(a.product.id) ? 'Remove' : '+ Compare' }}
                       </button>
                     </div>

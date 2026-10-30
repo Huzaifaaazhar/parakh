@@ -16,7 +16,7 @@ import { ProductImage } from './shared/product-image';
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2"
       >Skip to content</a
     >
-    <header class="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
+    <header class="sticky top-0 z-30 border-b-2 border-pink bg-paper/95 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6">
         <a routerLink="/" class="flex shrink-0 items-center gap-2" aria-label="Parakh home">
           <img src="favicon.svg" alt="" class="h-8 w-8" />

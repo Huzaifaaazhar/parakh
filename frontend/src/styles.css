@@ -4,17 +4,19 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
 
-  --color-ink: #1c1814;
-  --color-paper: #faf6ef;
+  /* Deep blue · pure white · bubblegum pink. Pink is an accent: it carries deep-blue
+     text (5.4:1), and pink *text* uses pink-deep (5.9:1 on white). */
+  --color-ink: #0a1f5c;
+  --color-paper: #ffffff;
   --color-card: #ffffff;
-  --color-line: #e9e1d3;
-  --color-muted: #6e6558;
-  --color-saffron: #df8f2b;
-  --color-saffron-dark: #a8620c;
-  --color-saffron-soft: #fcefdc;
-  --color-teal: #0e5c57;
-  --color-teal-soft: #e3f0ee;
-  --color-sale: #c2410c;
+  --color-line: #e1e6f2;
+  --color-muted: #5a6688;
+  --color-pink: #ff5fa2;
+  --color-pink-deep: #c2185b;
+  --color-pink-soft: #ffe4f0;
+  --color-blue: #2343b8;
+  --color-blue-soft: #eaf0ff;
+  --color-sale: #c2185b;
   --color-drop: #15803d;
 }
 
@@ -31,7 +33,7 @@
     @apply font-display tracking-tight;
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-saffron;
+    @apply outline-2 outline-offset-2 outline-pink-deep;
   }
 }
 
@@ -42,7 +44,7 @@
   @apply btn bg-ink text-paper hover:bg-ink/85;
 }
 @utility btn-accent {
-  @apply btn bg-saffron text-ink hover:bg-saffron-dark hover:text-white;
+  @apply btn bg-pink text-ink hover:bg-pink-deep hover:text-white;
 }
 @utility btn-ghost {
   @apply btn border border-line bg-card text-ink hover:border-ink/40;
@@ -51,7 +53,7 @@
   @apply inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1 text-xs font-medium text-ink transition-colors hover:border-ink/40;
 }
 @utility chip-active {
-  @apply chip border-ink bg-ink text-paper hover:border-ink;
+  @apply chip border-pink bg-pink text-ink hover:border-pink-deep;
 }
 @utility card {
   @apply rounded-2xl border border-line bg-card;

@@ -15,11 +15,11 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
   imports: [FormsModule, RouterLink, DecimalPipe, PkrPipe, ProductCard, SkeletonGrid, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="border-b border-line bg-gradient-to-b from-saffron-soft/60 to-paper">
+    <section class="border-b border-line bg-gradient-to-b from-pink-soft/60 to-paper">
       <div class="mx-auto max-w-7xl px-4 pb-12 pt-10 sm:pb-16 sm:pt-16">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-saffron-dark">Pakistan's price checker</p>
+        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-pink-deep">Pakistan's price checker</p>
         <h1 class="max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl">
-          Compare before you buy.<br /><span class="text-teal">Every store, every sale, one place.</span>
+          Compare before you buy.<br /><span class="text-blue">Every store, every sale, one place.</span>
         </h1>
         <p class="mt-4 max-w-2xl text-base text-muted sm:text-lg">
           Clothes, shoes, phones, earbuds, perfumes and home goods from {{ storeCount() || 'dozens of' }} Pakistani stores — searched, matched and price-tracked
@@ -30,13 +30,13 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
             <span class="sr-only">What are you looking for?</span>
             <input [(ngModel)]="query" name="q" class="input h-12 rounded-full px-5 text-base shadow-sm" placeholder="e.g. men's kurta under 4000" />
           </label>
-          <button class="btn-primary h-12 px-6 text-base">Search</button>
+          <button class="btn-accent h-12 px-6 text-base font-semibold">Search</button>
         </form>
         <div class="mt-4 flex flex-wrap gap-2">
           @for (q of examples; track q) {
             <a [routerLink]="['/products']" [queryParams]="{ q }" class="chip">{{ q }}</a>
           }
-          <a routerLink="/assistant" class="chip border-teal/40 text-teal">✦ Ask the assistant</a>
+          <a routerLink="/assistant" class="chip border-pink bg-pink-soft text-pink-deep hover:border-pink-deep">✦ Ask the assistant</a>
         </div>
 
         @if (overview(); as ov) {
@@ -66,7 +66,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
             <a
               [routerLink]="['/products']"
               [queryParams]="{ vertical: v.key }"
-              class="card group flex flex-col gap-1 p-4 transition-colors hover:border-ink/40 sm:p-5"
+              class="card group flex flex-col gap-1 p-4 transition-colors hover:border-pink sm:p-5"
             >
               <span class="text-2xl" aria-hidden="true">{{ v.emoji }}</span>
               <span class="font-display text-lg font-semibold">{{ v.label }}</span>
@@ -83,7 +83,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
               <h2 id="sales-now" class="section-title">Who's on sale right now</h2>
               <p class="text-sm text-muted">Live sale status across stores, refreshed every few hours.</p>
             </div>
-            <a routerLink="/sales" class="shrink-0 text-sm font-medium text-teal hover:underline">All sales →</a>
+            <a routerLink="/sales" class="shrink-0 text-sm font-medium text-blue hover:underline">All sales →</a>
           </div>
           <div class="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
             @for (s of ov.stores.slice(0, 10); track s.id) {
@@ -112,7 +112,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
             <h2 id="trending" class="section-title">Best value picks</h2>
             <p class="text-sm text-muted">Big discounts on items priced below similar products.</p>
           </div>
-          <a routerLink="/products" [queryParams]="{ sort: 'value' }" class="shrink-0 text-sm font-medium text-teal hover:underline">See more →</a>
+          <a routerLink="/products" [queryParams]="{ sort: 'value' }" class="shrink-0 text-sm font-medium text-blue hover:underline">See more →</a>
         </div>
         @if (trending() === null) {
           <app-skeleton-grid [count]="8" />
@@ -137,7 +137,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
               <h2 id="drops" class="section-title">Fresh price drops</h2>
               <p class="text-sm text-muted">Prices that fell since our last check.</p>
             </div>
-            <a routerLink="/sales" [queryParams]="{ tab: 'drops' }" class="shrink-0 text-sm font-medium text-teal hover:underline">All drops →</a>
+            <a routerLink="/sales" [queryParams]="{ tab: 'drops' }" class="shrink-0 text-sm font-medium text-blue hover:underline">All drops →</a>
           </div>
           <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @for (d of drops(); track d.product.id) {

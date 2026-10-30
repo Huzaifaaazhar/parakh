@@ -53,7 +53,7 @@ import { EmptyState } from '../shared/states';
             <button class="btn-primary w-full" [disabled]="busy()">{{ mode() === 'login' ? 'Sign in' : 'Create account' }}</button>
             <p class="text-center text-sm text-muted">
               {{ mode() === 'login' ? 'New here?' : 'Already have an account?' }}
-              <button type="button" class="font-medium text-teal hover:underline" (click)="mode.set(mode() === 'login' ? 'register' : 'login'); error.set('')">
+              <button type="button" class="font-medium text-blue hover:underline" (click)="mode.set(mode() === 'login' ? 'register' : 'login'); error.set('')">
                 {{ mode() === 'login' ? 'Create an account' : 'Sign in' }}
               </button>
             </p>
@@ -101,13 +101,13 @@ import { EmptyState } from '../shared/states';
             <div class="mb-4 flex items-center justify-between">
               <h2 id="alerts" class="section-title">Price alerts</h2>
               @if (hasUnread()) {
-                <button type="button" class="text-xs font-medium text-teal hover:underline" (click)="markRead()">Mark all read</button>
+                <button type="button" class="text-xs font-medium text-blue hover:underline" (click)="markRead()">Mark all read</button>
               }
             </div>
             @if (notifications().length) {
               <ul class="space-y-2">
                 @for (n of notifications(); track n.id) {
-                  <li class="card p-3 text-sm" [class.border-saffron]="!n.is_read">
+                  <li class="card p-3 text-sm" [class.border-pink]="!n.is_read">
                     @if (n.product_id) {
                       <a [routerLink]="['/products', n.product_id]" class="hover:underline">{{ n.message }}</a>
                     } @else {

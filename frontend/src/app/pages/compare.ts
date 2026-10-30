@@ -34,7 +34,7 @@ import { EmptyState } from '../shared/states';
       } @else if (error()) {
         <app-empty-state title="Couldn't compare these" message="One of the products may no longer be available." />
       } @else if (data(); as d) {
-        <p class="mb-5 rounded-xl bg-teal-soft px-4 py-3 text-sm text-teal">{{ d.summary }}</p>
+        <p class="mb-5 rounded-xl bg-blue-soft px-4 py-3 text-sm text-blue">{{ d.summary }}</p>
         <div class="overflow-x-auto rounded-2xl border border-line bg-card">
           <table class="w-full min-w-[640px] table-fixed text-sm">
             <caption class="sr-only">
