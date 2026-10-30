@@ -41,7 +41,14 @@ def test_plural_matches():
 
 @pytest.mark.parametrize(
     ("text", "gender"),
-    [("Girls Printed Frock", "kids"), ("Women Basic Tee", "women"), ("Mens Polo", "men"), ("Unisex Cap", "unisex"), ("Lawn Suit", None)],
+    [
+        ("Girls Printed Frock", "kids"),
+        ("Women Basic Tee", "women"),
+        ("Mens Polo", "men"),
+        ("Unisex Cap", "unisex"),
+        ("Perfume for Men & Women", "unisex"),
+        ("Lawn Suit", None),
+    ],
 )
 def test_detect_gender(text, gender):
     assert detect_gender(text) == gender
@@ -108,3 +115,51 @@ def test_generic_vendors_fall_back_to_store(vendor):
 def test_real_vendor_is_kept():
     rec = normalize(RawProduct("1", "Galaxy A15", "u", price=1000, brand="Samsung"), store_name="Telemart")
     assert rec["brand_name"] == "Samsung"
+
+
+# --- audience (men / women / kids) — cases taken from real store data ---------------------------
+from app.services.normalization.normalizer import detect_audience  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    ("title", "tags", "sizes", "default", "expected"),
+    [
+        # Beechtree girls' suit: no kid word in the title, but age sizes and kid tags.
+        ("2 PIECE FLORAL EMBROIDERED SUIT", ["11-12Y", "6-7Y", "Pink"], [], None, "kids"),
+        ("Basic Polo", [], ["3-4 Years", "5-6 Years"], None, "kids"),
+        ("Romper", [], ["6-12M", "12-18M"], None, "kids"),
+        # Beechtree women's pret: only internal collection codes; "pret" means womenswear.
+        ("SOLID YARN DYED STRIPE SHIRT (PRET)", ["NA-PRET", "MAIN-EMB-PRET"], ["S", "M", "L"], None, "women"),
+        ("BASIC STRAIGHT PANTS", ["PRET-BOTTOMS"], ["S", "M"], None, "women"),
+        # No signal at all: fall back to the store's audience, else unknown.
+        ("EMBROIDERED STRAIGHT PANTS", ["NEW"], ["S", "M"], "women", "women"),
+        ("Athleisure Graphic Tee", ["Sale", "New-2025"], ["S", "M", "L"], None, None),
+        # Explicit title words beat tags and store defaults.
+        ("Men Oxford Check Shirt", ["kids"], [], "women", "men"),
+        # A stray "Girls" navigation tag can't make an adult-sized item a kids' item.
+        ("Fleece Hoodie", ["Girls Winter Dress"], ["S", "M", "L", "XL"], None, None),
+    ],
+)
+def test_detect_audience(title, tags, sizes, default, expected):
+    assert detect_audience(title, None, tags, None, sizes, default) == expected
+
+
+def test_single_vertical_store_never_falls_back_to_clothing():
+    # Saeed Ghani (beauty only): an eye cream must not become a "shirt" via noisy tags.
+    rec = normalize(
+        RawProduct("1", "Super Bright Under Eye Gel Cream", "u", price=900, tags=["shirt"]), store_name="SG", allowed_verticals=["beauty"]
+    )
+    assert (rec["vertical"], rec["category"]) == ("beauty", "skincare")
+    rec = normalize(RawProduct("2", "Gift Hamper Deluxe", "u", price=900, tags=["shirt"]), store_name="SG", allowed_verticals=["beauty"])
+    assert rec["vertical"] == "beauty"
+
+
+def test_age_sizes_beat_misleading_product_type():
+    # Real J. data: boys' kurta whose product_type is the department "Men Division".
+    assert detect_audience("Green Formal Kurta Trousers", "Men Division", ["boys&girls-kidboys"], None, ["2 Y", "4 Y", "6 Y"]) == "kids"
+    assert (
+        detect_audience("Purple Printed Khaddar Slub Stitched 3Pc", "Women Division", ["boys&girls-teengirls"], None, ["12 Y", "14 Y"])
+        == "kids"
+    )
+    # Product type still helps when nothing else does.
+    assert detect_audience("Formal Shoes", "Men Division", [], None, ["40", "41"]) == "men"

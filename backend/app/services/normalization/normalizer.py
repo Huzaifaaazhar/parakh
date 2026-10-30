@@ -124,13 +124,62 @@ def is_generic_brand(brand: str | None) -> bool:
     return False
 
 
+# Children's sizes: "6-7Y", "3-4 years", "12-18M", "8Y", "toddler"…
+_KID_SIZE_RE = re.compile(
+    r"(?<![a-z0-9])\d{1,2}\s*[-–]\s*\d{1,2}\s*(?:y|yr|yrs|years?|m|months?)(?![a-z])"
+    r"|(?<![a-z0-9])\d{1,2}\s*(?:y|yrs|years)(?![a-z0-9])"
+    r"|(?<![a-z])(?:newborn|toddler|infant)(?![a-z])",
+    re.I,
+)
+_ADULT_SIZES = {"xxs", "xs", "s", "m", "l", "xl", "xxl", "xxxl", "2xl", "3xl", "small", "medium", "large", "x-large"}
+# Garments that in Pakistani retail are (almost) only womenswear.
+_WOMENSWEAR_RE = re.compile(
+    r"(?<![a-z])(pret|kurti|abaya|dupatta|lawn suit|unstitched|co-ord|culottes?|saree|lehenga|maxi|kaftan)(?![a-z])", re.I
+)
+
+
+def detect_audience(
+    title: str,
+    product_type: str | None,
+    tags: list[str],
+    url: str | None,
+    sizes: list[str],
+    default_gender: str | None = None,
+) -> str | None:
+    """Who a clothing item is for: men | women | kids | unisex | None (unknown).
+
+    Signals in order of trust:
+    1. age sizes ("6-7Y", "2 Y", "12-18M") — an item sold in ages is for children;
+    2. explicit words in the title;
+    3. tags / URL (a "kids" tag is ignored when every size is an adult letter size);
+    4. product type (often an internal department name, e.g. J.'s "Men Division"
+       is also used for boys' clothes, hence its low rank);
+    5. womenswear-only garments (pret, kurti, dupatta…), then the store default.
+    """
+    if _KID_SIZE_RE.search(" ".join([*sizes, *tags])):
+        return "kids"
+    if gender := detect_gender(title):
+        return gender
+    adult_sizes = bool(sizes) and all(s.strip().lower() in _ADULT_SIZES for s in sizes)
+    gender = detect_gender(" ".join(tags), url)
+    if gender and not (gender == "kids" and adult_sizes):
+        return gender
+    if gender := detect_gender(product_type):
+        return gender
+    if _WOMENSWEAR_RE.search(f"{title} {' '.join(tags)}"):
+        return "women"
+    return default_gender
+
+
 def compute_discount(price: float, original: float) -> float:
     if original and original > price > 0:
         return round((original - price) / original * 100, 1)
     return 0.0
 
 
-def normalize(raw: RawProduct, *, store_name: str, allowed_verticals: list[str] | None = None) -> dict[str, Any] | None:
+def normalize(
+    raw: RawProduct, *, store_name: str, allowed_verticals: list[str] | None = None, default_gender: str | None = None
+) -> dict[str, Any] | None:
     """Return a dict ready for the Product model, or None if the record is unusable."""
     price = parse_price(raw.price)
     if price is None or price <= 0:
@@ -145,15 +194,18 @@ def normalize(raw: RawProduct, *, store_name: str, allowed_verticals: list[str] 
     option_text = " ".join(" ".join(v) for v in raw.options.values())
 
     vertical, category = detect_category(title, raw.product_type, tags_text, description, allowed=allowed_verticals)
-    if category == "other" and allowed_verticals:
-        # The store sells something outside its declared verticals; trust the title.
-        alt_vertical, alt_category = detect_category(title, raw.product_type, tags_text)
+    if category == "other" and allowed_verticals and len(allowed_verticals) > 1:
+        # Multi-department stores (e.g. Telemart) list items outside their declared
+        # verticals. Trust only the title here: tags and descriptions are too noisy
+        # (an eye cream must not become a "shirt" because of a navigation tag).
+        alt_vertical, alt_category = detect_category(title)
         if alt_category != "other":
             vertical, category = alt_vertical, alt_category
 
     gender = None
     if vertical in {"fashion", "beauty"}:
-        gender = detect_gender(title, raw.product_type, tags_text, raw.url) or None
+        sizes = [v for k, vals in raw.options.items() if "size" in k or "age" in k for v in vals]
+        gender = detect_audience(title, raw.product_type, raw.tags, raw.url, sizes, default_gender if vertical == "fashion" else None)
 
     attributes: dict[str, Any] = {}
     if vertical == "electronics":

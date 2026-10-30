@@ -6,7 +6,7 @@ stores:
   # ---------------- Fashion ----------------
   - {slug: outfitters, name: Outfitters, website: "https://outfitters.com.pk", verticals: [fashion]}
   - {slug: breakout, name: Breakout, website: "https://breakout.com.pk", verticals: [fashion]}
-  - {slug: limelight, name: Limelight, website: "https://www.limelight.pk", verticals: [fashion]}
+  - {slug: limelight, name: Limelight, website: "https://www.limelight.pk", verticals: [fashion], default_gender: women}
   - {slug: bonanza-satrangi, name: Bonanza Satrangi, website: "https://bonanzasatrangi.com", verticals: [fashion]}
   - {slug: gul-ahmed, name: Gul Ahmed, website: "https://www.gulahmedshop.com", verticals: [fashion, home]}
   - {slug: junaid-jamshed, name: J., website: "https://www.junaidjamshed.com", verticals: [fashion, beauty]}
@@ -16,14 +16,14 @@ stores:
   - {slug: engine, name: Engine, website: "https://engine.com.pk", verticals: [fashion]}
   - {slug: ethnc, name: Ethnc, website: "https://pk.ethnc.com", verticals: [fashion]}
   - {slug: zellbury, name: Zellbury, website: "https://zellbury.com", verticals: [fashion]}
-  - {slug: beechtree, name: Beechtree, website: "https://beechtree.pk", verticals: [fashion]}
-  - {slug: maria-b, name: Maria B, website: "https://www.mariab.pk", verticals: [fashion]}
+  - {slug: beechtree, name: Beechtree, website: "https://beechtree.pk", verticals: [fashion], default_gender: women}
+  - {slug: maria-b, name: Maria B, website: "https://www.mariab.pk", verticals: [fashion], default_gender: women}
   - {slug: almirah, name: Almirah, website: "https://www.almirah.com.pk", verticals: [fashion]}
   # ---------------- Footwear ----------------
   - {slug: servis, name: Servis, website: "https://www.servis.pk", verticals: [fashion]}
   - {slug: ndure, name: Ndure, website: "https://www.ndure.com", verticals: [fashion]}
   - {slug: borjan, name: Borjan, website: "https://www.borjan.com.pk", verticals: [fashion]}
-  - {slug: stylo, name: Stylo, website: "https://stylo.pk", verticals: [fashion]}
+  - {slug: stylo, name: Stylo, website: "https://stylo.pk", verticals: [fashion], default_gender: women}
   # ---------------- Electronics ----------------
   # Telemart reports all stock as unavailable to stealth-header clients; plain HTTP gets real stock.
   - {slug: telemart, name: Telemart, website: "https://www.telemart.pk", verticals: [electronics, home, beauty, fashion], fetcher: httpx}

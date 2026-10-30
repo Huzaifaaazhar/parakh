@@ -147,7 +147,7 @@ def ingest_products(
     for raw in raw_products:
         stats.seen += 1
         try:
-            record = normalize(raw, store_name=cfg.name, allowed_verticals=cfg.verticals)
+            record = normalize(raw, store_name=cfg.name, allowed_verticals=cfg.verticals, default_gender=cfg.default_gender)
         except Exception as exc:  # noqa: BLE001
             log.warning("[%s] normalisation failed for %s: %s", cfg.slug, raw.external_id, exc)
             record = None

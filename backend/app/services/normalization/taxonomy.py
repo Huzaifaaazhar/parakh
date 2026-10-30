@@ -127,6 +127,10 @@ CATEGORY_RULES: tuple[CategoryRule, ...] = (
             "toner",
             "face cream",
             "night cream",
+            "eye cream",
+            "under eye",
+            "eye gel",
+            "gel cream",
             "day cream",
             "foot care",
             "lotion",
@@ -391,10 +395,14 @@ def detect_gender(*texts: str | None) -> str | None:
     if not blob:
         return None
     # Kids first: "girls kurta" must not become women.
-    for gender in ("kids", "unisex", "women", "men"):
-        if _GENDER_PATTERNS[gender].search(blob):
-            return gender
-    return None
+    if _GENDER_PATTERNS["kids"].search(blob):
+        return "kids"
+    if _GENDER_PATTERNS["unisex"].search(blob):
+        return "unisex"
+    women, men = bool(_GENDER_PATTERNS["women"].search(blob)), bool(_GENDER_PATTERNS["men"].search(blob))
+    if women and men:  # "Perfume for Men & Women"
+        return "unisex"
+    return "women" if women else "men" if men else None
 
 
 def detect_color(*texts: str | None) -> str | None:

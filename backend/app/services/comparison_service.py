@@ -10,7 +10,7 @@ Similarity blends:
 import re
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.cache import cached
@@ -33,10 +33,26 @@ def _jaccard(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(a | b) if a and b else 0.0
 
 
-def _gender_ok(base: Product, other: Product) -> bool:
-    if not base.gender or not other.gender:
-        return True
-    return base.gender == other.gender or "unisex" in (base.gender, other.gender)
+def _audience_weight(base: Product, other: Product) -> float | None:
+    """How compatible two items' audiences are: None = never compare, else a score multiplier.
+
+    Children's items only ever match children's items. Men vs women never match
+    (unisex matches both). An unknown audience is allowed against adult items but
+    ranked below confirmed matches.
+    """
+    a, b = base.gender, other.gender
+    if "kids" in (a, b):
+        return 1.0 if a == b else None
+    if a and b:
+        return 1.0 if a == b or "unisex" in (a, b) else None
+    if base.vertical != "fashion":
+        return 1.0
+    return 0.85
+
+
+def _price_band(base: Product) -> tuple[float, float]:
+    # Clothing alternatives should be in a realistic price range; gadgets vary more.
+    return (0.4, 2.5) if base.vertical == "fashion" else (0.3, 3.0)
 
 
 def _features(base: Product, other: Product) -> tuple[float, list[str], list[str]]:
@@ -76,6 +92,9 @@ def _candidates(db: Session, base: Product, k: int) -> dict[int, float]:
     where: dict[str, Any] = {"vertical": base.vertical, "in_stock": True}
     if base.category != "other":
         where["category"] = base.category
+    # Keep children's and adult items in separate pools from the start, so the
+    # candidate limit isn't spent on items that can never match.
+    where["gender"] = "kids" if base.gender == "kids" else {"$ne": "kids"}
     try:
         hits = get_vector_store().query_by_id(base.id, embedding_text(base), k=k, where=where)
         sem = {h.product_id: max(0.0, h.score) for h in hits}
@@ -83,16 +102,18 @@ def _candidates(db: Session, base: Product, k: int) -> dict[int, float]:
         sem = {}
     # Always add a structured candidate pool so comparison works without a vector index.
     price = float(base.price)
+    lo, hi = _price_band(base)
     stmt = select(Product.id).where(
         Product.is_active.is_(True),
         Product.in_stock.is_(True),
         Product.vertical == base.vertical,
         Product.id != base.id,
-        Product.price.between(price * 0.3, price * 3),
+        Product.price.between(price * lo, price * hi),
+        Product.gender == "kids" if base.gender == "kids" else or_(Product.gender.is_(None), Product.gender != "kids"),
     )
     if base.category != "other":
         stmt = stmt.where(Product.category == base.category)
-    for pid in db.scalars(stmt.limit(400)):
+    for pid in db.scalars(stmt.order_by(func.abs(Product.price - price)).limit(400)):
         sem.setdefault(pid, 0.0)
     return sem
 
@@ -116,8 +137,13 @@ def find_alternatives(
     base_tokens = _tokens(base.product_name)
     base_price = float(base.price)
     scored = []
+    lo, hi = _price_band(base)
     for other in others:
-        if not _gender_ok(base, other):
+        audience = _audience_weight(base, other)
+        if audience is None:
+            continue
+        price = float(other.price)
+        if base_price and not lo <= price / base_price <= hi:
             continue
         same_store = other.store_id == base.store_id
         title_sim = _jaccard(base_tokens, _tokens(other.product_name))
@@ -127,9 +153,9 @@ def find_alternatives(
         if other_brands_only and same_store:
             continue
         attr_score, shared, diffs = _features(base, other)
-        price = float(other.price)
         ratio = min(price, base_price) / max(price, base_price) if price and base_price else 0
         similarity = 0.45 * sem.get(other.id, 0.0) + 0.25 * attr_score + 0.2 * title_sim + 0.1 * ratio
+        similarity *= audience
         if same_product:
             similarity = max(similarity, 0.9)
         diff = round(price - base_price, 2)

@@ -16,6 +16,7 @@ class StoreConfig:
     verticals: list[str] = field(default_factory=lambda: ["fashion"])
     enabled: bool = True
     logo_url: str | None = None
+    default_gender: str | None = None  # audience when a product gives no signal (e.g. a womenswear-only brand)
     max_pages: int | None = None
     fetcher: str | None = None  # override global fetcher mode per store
     collections: list[str] = field(default_factory=list)  # optional Shopify collection handles

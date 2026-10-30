@@ -150,3 +150,49 @@ def test_auth_wishlist_and_price_alert(client, db, product_id):
 def test_admin_endpoints_require_key(client):
     assert client.post("/api/admin/scrape").status_code == 403
     assert client.get("/api/admin/scrape-runs", headers={"X-Admin-Key": "test-secret"}).status_code == 200
+
+
+def test_compare_never_mixes_kids_and_adults(db, client):
+    """Regression: gender-unknown adult items were compared with children's clothes."""
+    from sqlalchemy import select
+
+    from app.models import Product
+    from app.scrapers.base import StoreConfig
+    from app.services.indexing import index_products
+    from app.services.ingestion import ingest_products
+    from app.services.normalization.normalizer import RawProduct
+
+    def shirt(store, ext, title, price, tags=(), sizes=("S", "M", "L")):
+        return RawProduct(ext, title, f"https://{store}.pk/p/{ext}", price=price, tags=list(tags), options={"size": list(sizes)})
+
+    a = StoreConfig("aud-a", "Audience A", "https://a.pk", verticals=["fashion"])
+    b = StoreConfig("aud-b", "Audience B", "https://b.pk", verticals=["fashion"])
+    c = StoreConfig("aud-c", "Audience C", "https://c.pk", verticals=["fashion"], default_gender="women")
+    ingest_products(db, a, [shirt("a", "u1", "Zebra Stripe Casual Shirt", 3000, tags=["Sale"])])  # unknown audience
+    ingest_products(
+        db,
+        b,
+        [
+            shirt("b", "k1", "Zebra Stripe Casual Shirt", 2900, tags=["kids"], sizes=["6-7Y", "8-9Y"]),
+            shirt("b", "m1", "Men Zebra Stripe Casual Shirt", 3100),
+        ],
+    )
+    ingest_products(db, c, [shirt("c", "w1", "Zebra Stripe Casual Shirt", 3050)])
+    db.commit()
+    ids = {p.external_id: p for p in db.scalars(select(Product).where(Product.external_id.in_(["u1", "k1", "m1", "w1"])))}
+    assert ids["k1"].gender == "kids" and ids["w1"].gender == "women" and ids["u1"].gender is None
+    index_products(db, [p.id for p in ids.values()])
+
+    def alt_genders(pid):
+        data = client.post("/api/compare", json={"product_id": pid, "limit": 50}).json()
+        return {
+            a["product"]["external_id"] if "external_id" in a["product"] else a["product"]["id"]: a["product"]["gender"]
+            for a in data["alternatives"]
+        }
+
+    # Unknown-audience adult shirt: never matched with the kids' shirt.
+    assert "kids" not in alt_genders(ids["u1"].id).values()
+    # Kids' shirt: only kids' alternatives.
+    assert set(alt_genders(ids["k1"].id).values()) <= {"kids"}
+    # Men's shirt: no women's or kids' items.
+    assert set(alt_genders(ids["m1"].id).values()) <= {"men", "unisex", None}
