@@ -245,7 +245,7 @@ def template_answer(state: AgentState) -> str:
     elif intent == "deals":
         head = f"Top deals on {_describe_filters(f)}:"
     else:
-        head = f"Here are {_describe_filters(f)} I found:"
+        head = f"Top matches — {_describe_filters(f)}:"
     return "\n".join([head, *[_bullet(p) for p in products[:5]]])
 
 

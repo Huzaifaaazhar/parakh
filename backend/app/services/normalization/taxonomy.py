@@ -19,6 +19,28 @@ class CategoryRule:
 
 CATEGORY_RULES: tuple[CategoryRule, ...] = (
     # --- Electronics (checked first: "phone case" shouldn't become fashion) ---
+    # Accessories first so "Galaxy Watch Charger" / "AirPods Case" aren't classed as the device itself.
+    CategoryRule(
+        "electronics",
+        "accessory",
+        (
+            "watch strap",
+            "watch band strap",
+            "smart watch strap",
+            "screen protector",
+            "tempered glass",
+            "back cover",
+            "phone case",
+            "mobile cover",
+            "charging case",
+            "charging box",
+            "watch charger",
+            "case cover",
+        ),
+    ),
+    CategoryRule("electronics", "charger-cable", ("charger", "charging cable", "usb cable", "type-c cable", "adapter", "wall plug")),
+    CategoryRule("electronics", "smartwatch", ("smartwatch", "smart watch", "galaxy watch", "apple watch", "fitness band", "smart band")),
+    CategoryRule("electronics", "earbuds", ("earbuds", "earbud", "airpods", "buds", "tws", "true wireless", "airdots")),
     CategoryRule("electronics", "tablet", ("tablet", "ipad", "galaxy tab")),  # before smartphone: "galaxy tab" vs "galaxy"
     CategoryRule(
         "electronics",
@@ -41,12 +63,9 @@ CATEGORY_RULES: tuple[CategoryRule, ...] = (
         ),
     ),
     CategoryRule("electronics", "laptop", ("laptop", "notebook pc", "macbook", "chromebook", "thinkpad", "ideapad", "vivobook")),
-    CategoryRule("electronics", "smartwatch", ("smartwatch", "smart watch", "fitness band", "smart band")),
-    CategoryRule("electronics", "earbuds", ("earbuds", "earbud", "airpods", "tws", "true wireless")),
     CategoryRule("electronics", "headphones", ("headphone", "headphones", "headset", "earphone", "earphones", "handsfree")),
     CategoryRule("electronics", "speaker", ("speaker", "sound bar", "soundbar", "woofer")),
     CategoryRule("electronics", "power-bank", ("power bank", "powerbank")),
-    CategoryRule("electronics", "charger-cable", ("charger", "charging cable", "usb cable", "type-c cable", "adapter", "wall plug")),
     CategoryRule("electronics", "television", ("led tv", "smart tv", "television", "android tv")),
     CategoryRule("electronics", "camera", ("camera", "webcam", "action cam", "dashcam")),
     CategoryRule("electronics", "gaming", ("gaming", "controller", "gamepad", "playstation", "xbox", "console")),

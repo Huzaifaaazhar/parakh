@@ -1,0 +1,92 @@
+# Full stack: docker compose up --build
+# Then load data: docker compose exec api python -m app.cli seed-demo     (offline demo)
+#            or:  docker compose exec api python -m app.cli scrape        (real stores)
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: docker/backend.Dockerfile
+    args:
+      INSTALL_ML: ${INSTALL_ML:-true}
+      INSTALL_OPTIONAL: ${INSTALL_OPTIONAL:-false}
+  image: parakh-backend
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+psycopg://parakh:parakh@db:5432/parakh
+    REDIS_URL: redis://redis:6379/0
+    CHROMA_HOST: chroma
+    CHROMA_PORT: "8000"
+  volumes:
+    - backend-data:/app/data
+  depends_on:
+    db: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    chroma: { condition: service_started }
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: parakh
+      POSTGRES_PASSWORD: parakh
+      POSTGRES_DB: parakh
+    volumes: [pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parakh"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:1.5.9
+    volumes: [chroma-data:/data]
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    healthcheck: { disable: true }
+    command: alembic upgrade head
+    restart: "no"
+
+  api:
+    <<: *backend
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    <<: *backend
+    healthcheck: { disable: true }
+    command: celery -A app.workers.celery_app worker -Q celery,scraping,indexing --loglevel=INFO --concurrency=2
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  beat:
+    <<: *backend
+    healthcheck: { disable: true }
+    command: celery -A app.workers.celery_app beat --loglevel=INFO --schedule=/app/data/celerybeat-schedule
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    ports: ["8080:80"]
+    depends_on: [api]
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+  redis-data:
+  chroma-data:
+  backend-data:

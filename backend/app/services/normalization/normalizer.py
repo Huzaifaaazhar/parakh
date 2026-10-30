@@ -92,6 +92,38 @@ def extract_specs(text: str) -> dict[str, Any]:
     return specs
 
 
+_JUNK_BRANDS = {
+    "default",
+    "vendor",
+    "my store",
+    "pret",
+    "unstitched",
+    "stitched",
+    "sale",
+    "new",
+    "new arrivals",
+    "eid",
+    "winter",
+    "summer",
+    "essentials",
+}
+
+
+_SEASON_CODE_RE = re.compile(r"^[A-Za-z]{1,4}[_\- ]?\d{2,4}$")
+
+
+def is_generic_brand(brand: str | None) -> bool:
+    """Shopify "vendor" is often a section name ("Men", "Bags", "Pret") rather than a brand."""
+    if not brand or len(brand) > 60:
+        return True
+    lower = brand.lower().strip()
+    if _SEASON_CODE_RE.match(brand.strip()):  # "WN_26", "SU-25", "FW2024"
+        return True
+    if lower in _JUNK_BRANDS or detect_gender(lower) or detect_category(lower)[1] != "other":
+        return True
+    return False
+
+
 def compute_discount(price: float, original: float) -> float:
     if original and original > price > 0:
         return round((original - price) / original * 100, 1)
@@ -135,8 +167,7 @@ def normalize(raw: RawProduct, *, store_name: str, allowed_verticals: list[str] 
         attributes["source_type"] = clean_text(raw.product_type, 80)
 
     brand = clean_text(raw.brand, 160) or store_name
-    # Shopify "vendor" is often the store itself, a warehouse code, or junk.
-    if not brand or len(brand) > 60 or brand.lower() in {"default", "vendor", "my store"}:
+    if is_generic_brand(brand):
         brand = store_name
 
     record = {

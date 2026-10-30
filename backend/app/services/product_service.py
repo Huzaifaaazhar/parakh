@@ -12,6 +12,7 @@ from app.core.errors import NotFoundError
 from app.core.logging import get_logger
 from app.models import Product, Store
 from app.schemas.product import ProductDetail, ProductOut, ProductQuery
+from app.services.normalization.normalizer import is_generic_brand
 from app.services.query_parser import SearchFilters, parse_query
 from app.services.vector.store import get_vector_store
 
@@ -105,7 +106,7 @@ def get_product_detail(db: Session, product_id: int) -> dict[str, Any]:
 def known_brands(db: Session) -> list[str]:
     brands = db.scalars(select(Product.brand_name).distinct()).all()
     stores = db.scalars(select(Store.name)).all()
-    return sorted({b for b in [*brands, *stores] if b and len(b) > 1})
+    return sorted({b for b in [*brands, *stores] if b and len(b) > 1 and not is_generic_brand(b)})
 
 
 def rank_by_value(products: list[Product]) -> list[Product]:

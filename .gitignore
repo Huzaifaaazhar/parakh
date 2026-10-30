@@ -24,3 +24,4 @@ frontend/coverage/
 .idea/
 .vscode/
 .DS_Store
+dump.rdb

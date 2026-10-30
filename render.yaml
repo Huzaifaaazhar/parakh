@@ -1,0 +1,31 @@
+# Render blueprint (free tier). Point DATABASE_URL at Supabase Postgres and
+# REDIS_URL at Upstash/Render Key Value; set the secrets in the dashboard.
+services:
+  - type: web
+    name: parakh-api
+    runtime: docker
+    dockerfilePath: docker/backend.Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    preDeployCommand: alembic upgrade head
+    envVars:
+      - { key: DATABASE_URL, sync: false }
+      - { key: REDIS_URL, sync: false }
+      - { key: SECRET_KEY, generateValue: true }
+      - { key: CORS_ORIGINS, sync: false }
+      - { key: EMBEDDING_BACKEND, value: hash }
+      - { key: VECTOR_BACKEND, value: chroma }
+      - { key: LLM_PROVIDER, value: groq }
+      - { key: GROQ_API_KEY, sync: false }
+  - type: worker
+    name: parakh-worker
+    runtime: docker
+    dockerfilePath: docker/backend.Dockerfile
+    dockerContext: .
+    plan: starter
+    dockerCommand: celery -A app.workers.celery_app worker -B -Q celery,scraping,indexing --loglevel=INFO --concurrency=1
+    envVars:
+      - { key: DATABASE_URL, sync: false }
+      - { key: REDIS_URL, sync: false }
+      - { key: EMBEDDING_BACKEND, value: hash }

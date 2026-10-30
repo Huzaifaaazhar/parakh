@@ -15,6 +15,11 @@ from app.services.normalization.taxonomy import detect_category, detect_color, d
         ("Boys Running Sneakers", ("fashion", "sneakers")),
         ("Samsung Galaxy A15 8GB/256GB", ("electronics", "smartphone")),
         ("Lenovo LP40 Pro TWS Earbuds", ("electronics", "earbuds")),
+        ("Samsung Galaxy Watch 9 44mm", ("electronics", "smartwatch")),
+        ("Samsung Galaxy Buds 3 Pro", ("electronics", "earbuds")),
+        ("Samsung Galaxy Watch Fast Wireless Charger", ("electronics", "charger-cable")),
+        ("R-012 Rugged Smart Watch Strap", ("electronics", "accessory")),
+        ("AirPods Pro Charging Case", ("electronics", "accessory")),
         ("Ronin R-6600 Power Bank 20000mAh", ("electronics", "power-bank")),
         ("Oud Eau De Parfum 100ml", ("beauty", "fragrance")),
         ("King Size Bed Sheet Set", ("home", "bedding")),
@@ -92,3 +97,14 @@ def test_normalize_rejects_bad_prices_and_fixes_compare_at():
     assert normalize(RawProduct("1", "Shirt", "u", price=None), store_name="S") is None
     rec = normalize(RawProduct("1", "Shirt", "u", price="1000", original_price="0"), store_name="S")
     assert rec["original_price"] == 1000 and rec["discount_percentage"] == 0
+
+
+@pytest.mark.parametrize("vendor", ["Men", "BOYS", "Bags", "Pret", "WN_26", "SU-25", "", None])
+def test_generic_vendors_fall_back_to_store(vendor):
+    rec = normalize(RawProduct("1", "Black Kurta", "u", price=1000, brand=vendor), store_name="J.")
+    assert rec["brand_name"] == "J."
+
+
+def test_real_vendor_is_kept():
+    rec = normalize(RawProduct("1", "Galaxy A15", "u", price=1000, brand="Samsung"), store_name="Telemart")
+    assert rec["brand_name"] == "Samsung"
