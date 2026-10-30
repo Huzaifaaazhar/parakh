@@ -1,0 +1,13 @@
+# Slim runtime for the Vercel demo function (no Postgres driver, Celery, Chroma or scrapers).
+fastapi==0.162.0
+pydantic[email]==2.14.2
+pydantic-settings>=2.6
+sqlalchemy==2.1.6
+httpx==0.28.1
+pyyaml>=6.0
+bcrypt==5.0.0
+pyjwt==2.15.1
+python-multipart>=0.0.12
+numpy==2.5.4
+langgraph==1.2.18
+langchain-core==1.7.3

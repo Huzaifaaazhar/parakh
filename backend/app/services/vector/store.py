@@ -75,35 +75,74 @@ class VectorStore(ABC):
 
 
 class MemoryVectorStore(VectorStore):
+    """In-process index: a numpy matrix of unit vectors. Used in tests and serverless demos,
+    where it can be loaded from a precomputed `.npz` snapshot instead of re-embedding."""
+
     def __init__(self):
         super().__init__()
         self._vectors: dict[int, list[float]] = {}
         self._meta: dict[int, dict[str, Any]] = {}
+        self._matrix = None  # rebuilt lazily after writes
+        self._ids: list[int] = []
 
     def upsert(self, ids, texts, metadatas):
         for pid, vec, meta in zip(ids, self.embedder.embed(texts), metadatas, strict=True):
             self._vectors[pid] = vec
             self._meta[pid] = meta
+        self._matrix = None
+
+    def _ensure_matrix(self):
+        import numpy as np
+
+        if self._matrix is None:
+            self._ids = list(self._vectors)
+            self._matrix = np.array([self._vectors[i] for i in self._ids], dtype=np.float32)
+        return self._matrix
 
     def query(self, text, k=20, where=None):
         import numpy as np
 
         if not self._vectors:
             return []
-        q = np.array(self.embedder.embed([text])[0])
+        scores = self._ensure_matrix() @ np.array(self.embedder.embed([text])[0], dtype=np.float32)
         hits = []
-        for pid, vec in self._vectors.items():
+        for idx in np.argsort(-scores):
+            pid = self._ids[idx]
             if _matches(self._meta[pid], where):
-                hits.append(VectorHit(pid, float(np.dot(q, np.array(vec))), self._meta[pid]))
-        return sorted(hits, key=lambda h: h.score, reverse=True)[:k]
+                hits.append(VectorHit(pid, float(scores[idx]), self._meta[pid]))
+                if len(hits) >= k:
+                    break
+        return hits
 
     def delete(self, ids):
         for pid in ids:
             self._vectors.pop(pid, None)
             self._meta.pop(pid, None)
+        self._matrix = None
 
     def count(self):
         return len(self._vectors)
+
+    def save(self, path: str) -> None:
+        import json
+
+        import numpy as np
+
+        matrix = self._ensure_matrix()
+        meta = json.dumps([self._meta[i] for i in self._ids])
+        np.savez_compressed(path, ids=np.array(self._ids, dtype=np.int64), vectors=matrix.astype(np.float16), meta=np.array(meta))
+
+    def load(self, path: str) -> None:
+        import json
+
+        import numpy as np
+
+        data = np.load(path)
+        self._ids = [int(i) for i in data["ids"]]
+        self._matrix = data["vectors"].astype(np.float32)
+        metas = json.loads(str(data["meta"]))
+        self._vectors = {pid: self._matrix[i] for i, pid in enumerate(self._ids)}
+        self._meta = dict(zip(self._ids, metas, strict=True))
 
 
 class ChromaVectorStore(VectorStore):
