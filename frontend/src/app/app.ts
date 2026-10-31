@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 
@@ -10,7 +11,7 @@ import { ProductImage } from './shared/product-image';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ProductImage, PkrPipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, ProductImage, PkrPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-paper-raised focus:px-3 focus:py-2">Skip to content</a>
@@ -21,7 +22,14 @@ import { ProductImage } from './shared/product-image';
           <span class="pk-wordmark__latin">Parakh</span>
           <span class="pk-wordmark__urdu" lang="ur" dir="rtl">پرکھ</span>
         </a>
-        <nav class="ml-auto hidden items-center gap-6 sm:flex" aria-label="Main">
+        <form (ngSubmit)="headerSearch()" class="pk-search pk-search--sm mx-auto hidden w-full max-w-md lg:flex" role="search">
+          <label for="hdr-q" class="sr-only">Search products</label>
+          <input id="hdr-q" [(ngModel)]="headerQuery" name="hq" placeholder="What are you looking for?" autocomplete="off" />
+          <button type="submit" aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+          </button>
+        </form>
+        <nav class="ml-auto hidden items-center gap-6 sm:flex lg:ml-0" aria-label="Main">
           @for (link of links; track link.path) {
             <a [routerLink]="link.path" routerLinkActive #rla="routerLinkActive" [routerLinkActiveOptions]="{ exact: link.path === '/' }" [attr.aria-current]="rla.isActive ? 'page' : null" class="pk-navlink">{{ link.label }}</a>
           }
@@ -63,13 +71,22 @@ import { ProductImage } from './shared/product-image';
       </div>
     }
 
-    <footer class="relative z-[3] border-t border-line bg-paper pb-24 sm:pb-0">
-      <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-        <p class="t-small">
-          <span class="pk-wordmark__urdu" lang="ur" dir="rtl">پرکھ</span>
-          <span class="ml-2">Parakh checks prices across Pakistani stores every few hours.</span>
-        </p>
-        <p class="t-small">Always confirm the price on the store's site before you buy.</p>
+    <footer class="pk-footer relative z-[3] mt-16 pb-28 sm:pb-0">
+      <div class="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:grid-cols-[1.4fr_1fr_1fr]">
+        <div>
+          <a routerLink="/" class="pk-wordmark" aria-label="Parakh home">
+            <span class="pk-wordmark__latin !text-on-blue">Parakh</span>
+            <span class="pk-wordmark__urdu !text-bubblegum" lang="ur" dir="rtl">پرکھ</span>
+          </a>
+          <p class="mt-3 max-w-sm text-[15px]">We check prices across Pakistani stores every few hours, so you can buy at the right price.</p>
+        </div>
+        <nav class="flex flex-col gap-2 text-[15px]" aria-label="Footer">
+          <a routerLink="/products" class="hover:text-bubblegum">Browse</a>
+          <a routerLink="/sales" class="hover:text-bubblegum">Sales</a>
+          <a routerLink="/assistant" class="hover:text-bubblegum">Assistant</a>
+          <a routerLink="/account" class="hover:text-bubblegum">My list</a>
+        </nav>
+        <p class="text-[13px] opacity-80">Always confirm the price on the store's site before you buy. Store names belong to their owners.</p>
       </div>
     </footer>
 
@@ -104,6 +121,13 @@ export class App {
     { path: '/sales', label: 'Sales', icon: 'M3 12V4h8l10 10-8 8L3 12zM7.5 7.5h.01' },
     { path: '/account', label: 'My list', icon: 'M6 3h12v18l-6-4-6 4z' },
   ];
+
+  protected headerQuery = '';
+
+  headerSearch(): void {
+    const q = this.headerQuery.trim();
+    if (q) this.router.navigate(['/products'], { queryParams: { q } });
+  }
 
   protected cheapest = () => Math.min(...this.tray.items().map((p) => p.price));
 
