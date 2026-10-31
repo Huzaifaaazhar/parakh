@@ -1,168 +1,214 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { Observable, catchError, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
-import { AuthService } from '../core/auth.service';
 import { CompareTrayService } from '../core/compare-tray.service';
 import { CompareResponse, ProductDetail } from '../core/models';
+import { WishlistService } from '../core/wishlist.service';
 import { LabelPipe, PkrPipe, TimeAgoPipe } from '../shared/format';
 import { PriceChart } from '../shared/price-chart';
 import { ProductImage } from '../shared/product-image';
 import { EmptyState } from '../shared/states';
+
+interface StoreRow {
+  id: number;
+  store: string;
+  price: number;
+  updated: string;
+  url: string;
+  current: boolean;
+}
 
 @Component({
   selector: 'app-product-detail',
   imports: [RouterLink, DecimalPipe, PkrPipe, LabelPipe, TimeAgoPipe, ProductImage, PriceChart, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mx-auto max-w-7xl px-4 py-8">
+    <div class="mx-auto max-w-7xl px-4 pb-16 pt-6">
       @if (error()) {
-        <app-empty-state
-          title="Product not found"
-          message="It may have been removed from the store."
-          actionLabel="Browse products"
-          (action)="router.navigate(['/products'])"
-        />
+        <app-empty-state title="Product not found" message="It may have been removed from the store." actionLabel="Browse products" (action)="router.navigate(['/products'])" />
       } @else if (product(); as p) {
-        <nav class="mb-4 text-sm text-muted" aria-label="Breadcrumb">
-          <a routerLink="/products" [queryParams]="{ vertical: p.vertical }" class="hover:underline">{{ p.vertical | label }}</a>
+        <nav class="t-small mb-4" aria-label="Breadcrumb">
+          <a routerLink="/products" [queryParams]="{ vertical: p.vertical }" class="pk-link font-normal">{{ p.vertical | label }}</a>
           <span class="mx-1">/</span>
-          <a routerLink="/products" [queryParams]="{ vertical: p.vertical, category: p.category }" class="hover:underline">{{ p.category | label }}</a>
+          <a routerLink="/products" [queryParams]="{ vertical: p.vertical, category: p.category }" class="pk-link font-normal">{{ p.category | label }}</a>
         </nav>
 
-        <div class="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-          <div class="card aspect-[4/5] overflow-hidden lg:sticky lg:top-24 lg:self-start">
-            <app-product-image [src]="p.image_url" [alt]="p.product_name" [vertical]="p.vertical" [label]="p.category | label" />
+        <div class="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-12">
+          <div class="relative aspect-[4/5] overflow-hidden rounded-tag border border-line bg-paper-raised lg:sticky lg:top-20 lg:self-start" [style.view-transition-name]="'product-' + p.id">
+            <app-product-image [src]="p.image_url" [alt]="p.product_name" [label]="p.store_name || p.brand_name" />
+            @if (p.discount_percentage > 0) {
+              <span class="pk-sticker absolute left-3 top-3">−{{ p.discount_percentage | number: '1.0-0' }}%</span>
+            }
           </div>
 
-          <div class="space-y-6">
+          <div class="space-y-8">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wider text-muted">{{ p.brand_name }} · sold by {{ p.store_name }}</p>
-              <h1 class="mt-1 text-3xl font-semibold leading-tight sm:text-4xl">{{ p.product_name }}</h1>
-              <div class="mt-4 flex flex-wrap items-baseline gap-3">
-                <span class="font-display text-4xl font-semibold" [class.text-sale]="p.discount_percentage > 0">{{ p.price | pkr }}</span>
+              <p class="pk-card__store">{{ p.brand_name }} · sold by {{ p.store_name }}</p>
+              <h1 class="mt-2 font-display text-[28px] font-extrabold leading-[1.05] [font-stretch:110%] sm:text-[34px]">{{ p.product_name }}</h1>
+
+              <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+                @if (isLowest()) {
+                  <span class="pk-circled">
+                    <span class="t-price-xl" [class.text-pink-ink]="p.discount_percentage > 0" [class.text-blue]="!p.discount_percentage">{{ p.price | pkr }}</span>
+                    <svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+                      <path d="M30 8 C 80 -2, 170 2, 192 22 C 206 40, 150 58, 92 56 C 34 54, 2 44, 6 28 C 9 15, 40 6, 70 5" />
+                    </svg>
+                  </span>
+                } @else {
+                  <span class="t-price-xl" [class.text-pink-ink]="p.discount_percentage > 0" [class.text-blue]="!p.discount_percentage">{{ p.price | pkr }}</span>
+                }
                 @if (p.original_price > p.price) {
-                  <span class="text-lg text-muted line-through">{{ p.original_price | pkr }}</span>
-                  <span class="badge-sale text-sm">{{ p.discount_percentage | number: '1.0-0' }}% off · save {{ p.original_price - p.price | pkr }}</span>
+                  <span class="pk-price__was text-base"><span class="sr-only">was </span>{{ p.original_price | pkr }}</span>
                 }
               </div>
-              <p class="mt-2 text-sm" [class.text-drop]="p.in_stock" [class.text-sale]="!p.in_stock">
-                {{ p.in_stock ? 'In stock' : 'Out of stock' }} <span class="text-muted">· checked {{ p.last_updated | timeAgo }}</span>
+              <p class="t-small mt-3">
+                @if (storeRows().length > 1) {
+                  @if (isLowest()) {
+                    Lowest of <b class="text-blue">{{ storeRows().length }} stores</b> we track
+                  } @else {
+                    <b class="text-pink-ink">{{ p.price - cheapestRow()!.price | pkr }} cheaper</b> at {{ cheapestRow()!.store }}
+                  }
+                } @else if (p.original_price > p.price) {
+                  You save <b class="text-blue">{{ p.original_price - p.price | pkr }}</b> at {{ p.store_name }}
+                } @else {
+                  Only found at {{ p.store_name }} so far
+                }
+                · {{ p.in_stock ? 'in stock' : 'out of stock' }}, checked {{ p.last_updated | timeAgo }}
               </p>
             </div>
 
-            <div class="flex flex-wrap gap-2">
-              <a [href]="p.product_url" target="_blank" rel="noopener noreferrer" class="btn-primary">View on {{ p.store_name }} ↗</a>
-              <button type="button" class="btn-ghost" (click)="tray.toggle(p)" [disabled]="!tray.has(p.id) && tray.isFull()">
-                {{ tray.has(p.id) ? '✓ In comparison' : '+ Add to compare' }}
+            <div class="flex flex-wrap gap-3">
+              <a [href]="p.product_url" target="_blank" rel="noopener noreferrer" class="pk-btn pk-btn--primary">Go to {{ p.store_name }}</a>
+              <button type="button" class="pk-btn pk-btn--quiet" (click)="toggleSave(p.id)" [attr.aria-pressed]="wishlist.has(p.id)">
+                {{ wishlist.has(p.id) ? 'Saved to my list' : 'Save and alert me' }}
               </button>
-              <button type="button" class="btn-ghost" (click)="toggleWishlist()" [disabled]="wishBusy()">
-                {{ saved() ? '♥ Saved' : '♡ Save & alert me' }}
+              <button type="button" class="pk-btn pk-btn--quiet" (click)="tray.toggle(p)" [disabled]="!tray.has(p.id) && tray.isFull()" [attr.aria-pressed]="tray.has(p.id)">
+                {{ tray.has(p.id) ? 'In compare' : 'Add to compare' }}
               </button>
-              <a routerLink="/assistant" [queryParams]="{ product: p.id }" class="btn-ghost text-blue">✦ Ask the assistant</a>
             </div>
-            @if (wishMessage()) {
-              <p class="text-sm text-muted" role="status">{{ wishMessage() }}</p>
+            @if (saveMessage()) {
+              <p class="t-small" role="status">{{ saveMessage() }}</p>
             }
 
-            <section class="card p-5" aria-labelledby="history">
-              <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="history" class="text-lg font-semibold">Price history</h2>
-                <p class="text-xs text-muted">Lowest {{ p.lowest_price | pkr }} · Highest {{ p.highest_price | pkr }}</p>
-              </div>
-              <app-price-chart [points]="p.price_history" />
-              @if (p.lowest_price !== null && p.price <= p.lowest_price) {
-                <p class="mt-2 text-sm font-medium text-drop">This is the lowest price we've tracked.</p>
+            <section aria-labelledby="stores">
+              <h2 id="stores" class="t-heading mb-3">Price at each store</h2>
+              @if (comparison() === null) {
+                <div class="pk-skel h-24"></div>
+              } @else {
+                <ul class="pk-storelist border-t-2 border-blue">
+                  @for (row of storeRows(); track row.id) {
+                    <li [class.is-cheapest]="row.id === cheapestRow()?.id && storeRows().length > 1">
+                      <span class="font-sans text-[15px] font-bold" [class.text-blue]="row.current">{{ row.store }}</span>
+                      @if (row.current) {
+                        <span class="t-small">(this page)</span>
+                      }
+                      <span class="pk-leader"></span>
+                      <span class="text-right">
+                        @if (row.current) {
+                          <span class="block font-semibold text-blue">{{ row.price | pkr }}</span>
+                        } @else {
+                          <a [routerLink]="['/products', row.id]" class="block font-semibold text-blue underline-offset-2 hover:underline">{{ row.price | pkr }}</a>
+                        }
+                        <span class="block text-[11px] text-charcoal-muted">updated {{ row.updated | timeAgo }}</span>
+                      </span>
+                    </li>
+                  }
+                </ul>
+                @if (storeRows().length === 1) {
+                  <p class="t-small mt-2">We haven't found this exact item at another store yet. Similar items are below.</p>
+                }
               }
             </section>
 
-            <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-              @for (spec of specs(); track spec.label) {
-                <div>
-                  <dt class="text-muted">{{ spec.label }}</dt>
-                  <dd class="font-medium">{{ spec.value }}</dd>
-                </div>
-              }
-            </dl>
+            <section aria-labelledby="history">
+              <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="history" class="t-heading">Price history</h2>
+                <p class="t-receipt text-charcoal-muted">low {{ p.lowest_price | pkr }} · high {{ p.highest_price | pkr }}</p>
+              </div>
+              <div class="rounded-tag border border-line bg-paper-raised p-4">
+                <app-price-chart [points]="p.price_history" />
+              </div>
+            </section>
 
-            @if (p.description) {
-              <details class="card p-5 text-sm" open>
-                <summary class="cursor-pointer font-semibold">Description</summary>
-                <p class="mt-3 whitespace-pre-line leading-relaxed text-muted">{{ p.description }}</p>
-              </details>
-            }
+            <section aria-labelledby="details">
+              <h2 id="details" class="t-heading mb-3">Details</h2>
+              <dl class="pk-receipt max-w-md">
+                @for (spec of specs(); track spec.label) {
+                  <div>
+                    <dt class="capitalize">{{ spec.label }}</dt>
+                    <span class="pk-leader"></span>
+                    <dd class="max-w-[60%] truncate text-right capitalize">{{ spec.value }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (p.description) {
+                <details class="mt-4">
+                  <summary class="pk-link cursor-pointer">Store description</summary>
+                  <p class="t-small mt-3 whitespace-pre-line">{{ p.description }}</p>
+                </details>
+              }
+              <a routerLink="/assistant" [queryParams]="{ product: p.id }" class="pk-link mt-4 inline-block">Ask the assistant about this item</a>
+            </section>
           </div>
         </div>
 
-        <section class="mt-14" aria-labelledby="alternatives">
-          <div class="mb-4 flex flex-wrap items-end justify-between gap-4">
+        <section class="mt-12 sm:mt-[72px]" aria-labelledby="similar">
+          <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 id="alternatives" class="section-title">Compare alternatives</h2>
-              <p class="text-sm text-muted">The same item at other stores, and similar items from other brands.</p>
+              <h2 id="similar" class="t-display-lg">Similar items</h2>
+              <p class="t-small mt-2">From other brands and stores, for the same shopper.</p>
             </div>
-            <div class="flex gap-2" role="group" aria-label="Alternative filter">
-              <button type="button" [class]="!cheaperOnly() ? 'chip-active' : 'chip'" (click)="cheaperOnly.set(false)">All similar</button>
-              <button type="button" [class]="cheaperOnly() ? 'chip-active' : 'chip'" (click)="cheaperOnly.set(true)">Cheaper only</button>
+            <div class="flex gap-2" role="group" aria-label="Filter similar items">
+              <button type="button" class="pk-chip" [attr.aria-pressed]="!cheaperOnly()" (click)="cheaperOnly.set(false)">All similar</button>
+              <button type="button" class="pk-chip" [attr.aria-pressed]="cheaperOnly()" (click)="cheaperOnly.set(true)">Cheaper only</button>
             </div>
           </div>
-          @if (comparison(); as c) {
-            <p class="mb-4 rounded-xl bg-blue-soft px-4 py-3 text-sm text-blue">{{ c.summary }}</p>
-            @if (c.alternatives.length) {
-              <ul class="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
-                @for (a of c.alternatives; track a.product.id) {
-                  <li class="flex items-center gap-4 p-3 sm:p-4">
-                    <a [routerLink]="['/products', a.product.id]" class="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-paper">
-                      <app-product-image [src]="a.product.image_url" [vertical]="a.product.vertical" />
-                    </a>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-muted">{{ a.product.store_name }}</span>
-                        @if (a.match_type === 'same_product') {
-                          <span class="rounded-full bg-pink-soft px-2 py-0.5 text-[11px] font-semibold text-pink-deep">Same product</span>
-                        } @else {
-                          <span class="text-[11px] text-muted">{{ a.similarity * 100 | number: '1.0-0' }}% similar</span>
-                        }
-                      </div>
-                      <a [routerLink]="['/products', a.product.id]" class="line-clamp-1 font-medium hover:underline">{{ a.product.product_name }}</a>
-                      <p class="line-clamp-1 text-xs text-muted">{{ a.shared_features.concat(a.differences).slice(0, 4).join(' · ') }}</p>
-                    </div>
-                    <div class="shrink-0 text-right">
-                      <p class="font-semibold">{{ a.product.price | pkr }}</p>
-                      <p
-                        class="text-xs font-semibold"
-                        [class.text-drop]="a.is_cheaper"
-                        [class.text-sale]="!a.is_cheaper && a.price_difference > 0"
-                        [class.text-muted]="a.price_difference === 0"
-                      >
-                        @if (a.price_difference === 0) {
-                          Same price
-                        } @else {
-                          {{ a.is_cheaper ? '−' : '+' }}{{ abs(a.price_difference) | pkr }} ({{ abs(a.price_difference_pct) | number: '1.0-0' }}%)
-                        }
-                      </p>
-                      <button type="button" class="mt-1 text-xs font-medium text-blue hover:underline" (click)="tray.toggle(a.product)">
-                        {{ tray.has(a.product.id) ? 'Remove' : '+ Compare' }}
-                      </button>
-                    </div>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <app-empty-state title="No cheaper alternatives" message="This looks like the best price among similar items we track." />
-            }
+          @if (comparison() === null) {
+            <div class="pk-skel h-40"></div>
+          } @else if (similar().length) {
+            <ul class="pk-ledger">
+              @for (a of similar(); track a.product.id) {
+                <li>
+                  <a class="pk-drop grid-cols-[56px_1fr_auto] sm:grid-cols-[64px_1fr_auto]" [routerLink]="['/products', a.product.id]">
+                    <span class="block h-16 w-14 overflow-hidden rounded-tag border border-line sm:h-20 sm:w-16">
+                      <app-product-image [src]="a.product.image_url" [label]="a.product.store_name || a.product.brand_name" />
+                    </span>
+                    <span class="min-w-0">
+                      <span class="pk-card__store">{{ a.product.store_name }}</span>
+                      <span class="pk-drop__name mt-1">{{ a.product.product_name }}</span>
+                      <span class="pk-drop__store">{{ a.shared_features.slice(0, 2).join(' · ') || 'Similar style' }}</span>
+                    </span>
+                    <span class="pk-drop__prices">
+                      <span class="pk-price__now block" [class.pk-price__now--sale]="a.product.discount_percentage > 0">{{ a.product.price | pkr }}</span>
+                      @if (a.price_difference === 0) {
+                        <span class="t-receipt text-charcoal-muted">same price</span>
+                      } @else if (a.is_cheaper) {
+                        <span class="t-receipt font-semibold text-pink-ink">{{ abs(a.price_difference) | pkr }} less</span>
+                      } @else {
+                        <span class="t-receipt text-charcoal-muted">{{ a.price_difference | pkr }} more</span>
+                      }
+                    </span>
+                  </a>
+                </li>
+              }
+            </ul>
           } @else {
-            <div class="h-40 animate-pulse rounded-2xl bg-line/50" aria-busy="true"></div>
+            <app-empty-state
+              [title]="cheaperOnly() ? 'Nothing cheaper yet' : 'No similar items yet'"
+              [message]="cheaperOnly() ? 'This is already the lowest price among similar items we track.' : 'We will list similar items as more stores are checked.'"
+            />
           }
         </section>
       } @else {
-        <div class="grid gap-8 lg:grid-cols-2" aria-busy="true">
-          <div class="aspect-[4/5] animate-pulse rounded-2xl bg-line/60"></div>
+        <div class="grid gap-8 lg:grid-cols-2" aria-busy="true" aria-label="Loading product">
+          <div class="pk-skel aspect-[4/5]"></div>
           <div class="space-y-3">
-            <div class="h-4 w-1/3 animate-pulse rounded bg-line/70"></div>
-            <div class="h-10 w-4/5 animate-pulse rounded bg-line/70"></div>
-            <div class="h-8 w-1/4 animate-pulse rounded bg-line/70"></div>
+            <div class="pk-skel h-4 w-1/3"></div>
+            <div class="pk-skel h-10 w-4/5"></div>
+            <div class="pk-skel h-8 w-1/4"></div>
           </div>
         </div>
       }
@@ -172,26 +218,44 @@ import { EmptyState } from '../shared/states';
 export class ProductDetailPage {
   readonly id = input.required<string>();
   private api = inject(ApiService);
-  private auth = inject(AuthService);
   protected readonly router = inject(Router);
   protected readonly tray = inject(CompareTrayService);
+  protected readonly wishlist = inject(WishlistService);
 
   protected readonly product = signal<ProductDetail | null>(null);
   protected readonly error = signal(false);
   protected readonly comparison = signal<CompareResponse | null>(null);
   protected readonly cheaperOnly = signal(false);
-  protected readonly saved = signal(false);
-  protected readonly wishBusy = signal(false);
-  protected readonly wishMessage = signal('');
+  protected readonly saveMessage = signal('');
   protected readonly abs = Math.abs;
+
+  /** This product plus the same item at other stores, cheapest first. */
+  protected readonly storeRows = computed<StoreRow[]>(() => {
+    const p = this.product();
+    if (!p) return [];
+    const rows: StoreRow[] = [{ id: p.id, store: p.store_name ?? p.brand_name, price: p.price, updated: p.last_updated, url: p.product_url, current: true }];
+    for (const a of this.comparison()?.alternatives ?? []) {
+      if (a.match_type !== 'same_product') continue;
+      const o = a.product;
+      rows.push({ id: o.id, store: o.store_name ?? o.brand_name, price: o.price, updated: o.last_updated, url: o.product_url, current: false });
+    }
+    return rows.sort((x, y) => x.price - y.price);
+  });
+  protected readonly cheapestRow = computed(() => this.storeRows()[0] ?? null);
+  protected readonly isLowest = computed(() => {
+    const p = this.product();
+    const c = this.cheapestRow();
+    return !!p && !!c && p.price <= c.price;
+  });
+
+  protected readonly similar = computed(() =>
+    (this.comparison()?.alternatives ?? []).filter((a) => a.match_type !== 'same_product' && (!this.cheaperOnly() || a.is_cheaper)),
+  );
 
   protected readonly specs = computed(() => {
     const p = this.product();
     if (!p) return [];
-    const out: { label: string; value: string }[] = [
-      { label: 'Category', value: p.category.replace(/-/g, ' ') },
-      { label: 'Store', value: p.store_name ?? '—' },
-    ];
+    const out: { label: string; value: string }[] = [{ label: 'Category', value: p.category.replace(/-/g, ' ') }];
     if (p.gender) out.push({ label: 'For', value: p.gender });
     if (p.color) out.push({ label: 'Colour', value: p.color });
     if (p.fabric) out.push({ label: 'Fabric', value: p.fabric });
@@ -201,6 +265,7 @@ export class ProductDetailPage {
     }
     const sizes = (p.attributes?.['options'] as Record<string, string[]> | undefined)?.['size'];
     if (sizes?.length) out.push({ label: 'Sizes', value: sizes.slice(0, 8).join(', ') });
+    out.push({ label: 'First seen', value: new Date(p.first_seen_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' }) });
     return out;
   });
 
@@ -209,45 +274,30 @@ export class ProductDetailPage {
       const id = Number(this.id());
       this.product.set(null);
       this.error.set(false);
-      this.saved.set(false);
-      this.wishMessage.set('');
+      this.saveMessage.set('');
+      this.cheaperOnly.set(false);
       this.api
         .product(id)
         .pipe(catchError(() => (this.error.set(true), of(null))))
         .subscribe((p) => this.product.set(p));
-    });
-    effect(() => {
-      const id = Number(this.id());
-      const cheaper = this.cheaperOnly();
+      // One unfiltered request feeds both the per-store list and "similar items".
       this.comparison.set(null);
       this.api
-        .alternatives(id, cheaper)
+        .alternatives(id, false, 24)
         .pipe(catchError(() => of(null)))
-        .subscribe((c) =>
-          this.comparison.set(c ?? { base: null!, alternatives: [], cheapest: null, best_value: null, summary: "Couldn't load alternatives right now." }),
-        );
+        .subscribe((c) => this.comparison.set(c ?? { base: null!, alternatives: [], cheapest: null, best_value: null, summary: '' }));
     });
   }
 
-  toggleWishlist(): void {
-    const p = this.product();
-    if (!p) return;
-    if (!this.auth.isLoggedIn()) {
-      this.router.navigate(['/account'], { queryParams: { next: `/products/${p.id}` } });
-      return;
-    }
-    this.wishBusy.set(true);
-    const req: Observable<unknown> = this.saved() ? this.api.removeFromWishlist(p.id) : this.api.addToWishlist(p.id);
-    req.subscribe({
+  toggleSave(id: number): void {
+    const wasSaved = this.wishlist.has(id);
+    this.wishlist.toggle(id).subscribe({
       next: () => {
-        this.saved.set(!this.saved());
-        this.wishMessage.set(this.saved() ? "Saved. We'll notify you when the price drops." : 'Removed from your list.');
-        this.wishBusy.set(false);
+        if (this.wishlist.has(id) !== wasSaved) {
+          this.saveMessage.set(wasSaved ? 'Removed from your list.' : "Saved. We'll tell you when the price drops.");
+        }
       },
-      error: () => {
-        this.wishMessage.set("Couldn't update your list. Please sign in again.");
-        this.wishBusy.set(false);
-      },
+      error: () => this.saveMessage.set("We couldn't update your list. Please sign in again."),
     });
   }
 }

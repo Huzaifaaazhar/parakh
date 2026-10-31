@@ -1,158 +1,132 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
-import { PriceDrop, Product, SalesOverview } from '../core/models';
-import { PkrPipe } from '../shared/format';
+import { Facets, Product, SalesOverview } from '../core/models';
+import { PkrPipe, TimeAgoPipe } from '../shared/format';
 import { ProductCard } from '../shared/product-card';
 import { EmptyState, SkeletonGrid } from '../shared/states';
 
 @Component({
   selector: 'app-home',
-  imports: [FormsModule, RouterLink, DecimalPipe, PkrPipe, ProductCard, SkeletonGrid, EmptyState],
+  imports: [FormsModule, RouterLink, DecimalPipe, PkrPipe, TimeAgoPipe, ProductCard, SkeletonGrid, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="bg-brand relative overflow-hidden text-white">
-      <div class="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-pink/40 blur-3xl" aria-hidden="true"></div>
-      <div class="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-blue/50 blur-3xl" aria-hidden="true"></div>
-      <div class="relative mx-auto max-w-7xl px-4 pb-12 pt-10 sm:pb-16 sm:pt-16">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-pink-light">Pakistan's price checker</p>
-        <h1 class="max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl">
-          Compare before you buy.<br /><span class="text-pink-light">Every store, every sale, one place.</span>
-        </h1>
-        <p class="mt-4 max-w-2xl text-base text-white/85 sm:text-lg">
-          Clothes, shoes, phones, earbuds, perfumes and home goods from {{ storeCount() || 'dozens of' }} Pakistani stores — searched, matched and price-tracked
-          for you.
+    <section class="pk-hero pk-on-blue">
+      <div class="mx-auto max-w-7xl px-4 pb-14 pt-8 sm:pb-[88px] sm:pt-[72px]">
+        <h1 class="t-display-xl max-w-4xl">Compare before you <span class="pk-hero__mark">buy.</span></h1>
+        <p class="mt-4 max-w-[34ch] text-[17px] leading-normal sm:max-w-[44ch] sm:text-lg">
+          Clothes, shoes, phones and perfumes from {{ storeCount() || 'Pakistani' }} Pakistani stores, matched and price-tracked.
         </p>
-        <form (ngSubmit)="search()" class="mt-8 flex max-w-2xl flex-col gap-2 sm:flex-row" role="search">
-          <label class="flex-1">
-            <span class="sr-only">What are you looking for?</span>
-            <input [(ngModel)]="query" name="q" class="input h-12 rounded-full border-transparent bg-white px-5 text-base shadow-lg shadow-ink/30" placeholder="e.g. men's kurta under 4000" />
-          </label>
-          <button class="btn-accent h-12 px-6 text-base font-semibold">Search</button>
+        <form (ngSubmit)="search()" class="pk-search mt-6 max-w-2xl" role="search">
+          <label for="hero-q" class="sr-only">What are you looking for?</label>
+          <input id="hero-q" [(ngModel)]="query" name="q" placeholder="Men's kurta under 4000" autocomplete="off" />
+          <button type="submit">Search prices</button>
         </form>
-        <div class="mt-4 flex flex-wrap gap-2">
+        <div class="mt-3 flex flex-wrap items-center gap-2">
           @for (q of examples; track q) {
-            <a [routerLink]="['/products']" [queryParams]="{ q }" class="chip border-white/25 bg-white/10 text-white backdrop-blur hover:border-white/60 hover:bg-white/20">{{ q }}</a>
+            <a class="pk-chip" [routerLink]="['/products']" [queryParams]="{ q }">{{ q }}</a>
           }
-          <a routerLink="/assistant" class="chip border-transparent bg-gradient-to-r from-pink to-[#ff8cc0] font-semibold text-ink hover:brightness-105">✦ Ask the assistant</a>
+          <a routerLink="/assistant" class="pk-btn pk-btn--quiet pk-btn--sm sm:ml-2">Ask the assistant</a>
         </div>
-
-        @if (overview(); as ov) {
-          <dl class="mt-10 grid max-w-2xl grid-cols-3 gap-3">
-            <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
-              <dt class="text-xs uppercase tracking-wider text-white/75">Products tracked</dt>
-              <dd class="font-display text-2xl font-semibold sm:text-3xl">{{ ov.total_products | number }}</dd>
-            </div>
-            <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
-              <dt class="text-xs uppercase tracking-wider text-white/75">On sale now</dt>
-              <dd class="font-display text-2xl font-semibold text-pink-light sm:text-3xl">{{ ov.total_on_sale | number }}</dd>
-            </div>
-            <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
-              <dt class="text-xs uppercase tracking-wider text-white/75">Avg. discount</dt>
-              <dd class="font-display text-2xl font-semibold sm:text-3xl">{{ ov.average_discount | number: '1.0-0' }}%</dd>
-            </div>
-          </dl>
-        }
       </div>
     </section>
 
-    <div class="mx-auto max-w-7xl space-y-14 px-4 pt-10">
-      <section aria-labelledby="shop-by">
-        <h2 id="shop-by" class="section-title mb-4">Shop by department</h2>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="mx-auto max-w-7xl px-4">
+      @if (overview(); as ov) {
+        <dl class="pk-receipt relative -mt-6 max-w-md">
+          <div><dt>Products tracked</dt><span class="pk-leader"></span><dd>{{ ov.total_products | number }}</dd></div>
+          <div><dt>On sale now</dt><span class="pk-leader"></span><dd class="is-sale">{{ ov.total_on_sale | number }}</dd></div>
+          <div><dt>Avg. discount</dt><span class="pk-leader"></span><dd>{{ ov.average_discount | number: '1.0-0' }}%</dd></div>
+          @if (lastChecked(); as lc) {
+            <div><dt>Last checked</dt><span class="pk-leader"></span><dd>{{ lc | timeAgo }}</dd></div>
+          }
+        </dl>
+      }
+
+      <section class="mt-12 sm:mt-[72px]" aria-labelledby="departments">
+        <h2 id="departments" class="t-display-lg mb-6">Departments</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-6">
           @for (v of verticals; track v.key) {
-            <a
-              [routerLink]="['/products']"
-              [queryParams]="{ vertical: v.key }"
-              class="card group relative flex flex-col gap-1 overflow-hidden bg-gradient-to-br from-white via-white to-pink-soft p-4 transition-all hover:-translate-y-0.5 hover:border-pink hover:shadow-lg hover:shadow-pink/15 sm:p-5"
-            >
-              <span class="text-2xl" aria-hidden="true">{{ v.emoji }}</span>
-              <span class="font-display text-lg font-semibold">{{ v.label }}</span>
-              <span class="text-xs text-muted">{{ v.blurb }}</span>
+            <a class="pk-dept" [routerLink]="['/products']" [queryParams]="{ vertical: v.key }">
+              <span class="pk-dept__name">{{ v.label }}</span>
+              <span>
+                <span class="pk-dept__meta">{{ v.blurb }}</span>
+                @if (deptCount(v.key); as n) {
+                  <span class="pk-dept__count">{{ n | number }} items</span>
+                }
+              </span>
             </a>
           }
         </div>
       </section>
 
       @if (overview(); as ov) {
-        <section aria-labelledby="sales-now">
-          <div class="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <h2 id="sales-now" class="section-title">Who's on sale right now</h2>
-              <p class="text-sm text-muted">Live sale status across stores, refreshed every few hours.</p>
-            </div>
-            <a routerLink="/sales" class="shrink-0 text-sm font-medium text-blue hover:underline">All sales →</a>
+        <section class="mt-12 sm:mt-[72px]" aria-labelledby="on-sale">
+          <div class="mb-6 flex items-end justify-between gap-4">
+            <h2 id="on-sale" class="t-display-lg">Who's on sale right now</h2>
+            <a routerLink="/sales" class="pk-link shrink-0">All sales</a>
           </div>
-          <div class="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
+          <div class="pk-strip -mx-4 px-4 sm:mx-0 sm:px-0">
             @for (s of ov.stores.slice(0, 10); track s.id) {
-              <a [routerLink]="['/sales']" [queryParams]="{ store: s.slug }" class="card w-48 shrink-0 snap-start p-4 transition-colors hover:border-ink/40">
-                <p class="truncate font-semibold">{{ s.name }}</p>
-                @if (s.on_sale > 0) {
-                  <p class="mt-1 text-sm">
-                    <span class="font-semibold text-sale">Up to {{ s.max_discount | number: '1.0-0' }}% off</span>
-                  </p>
-                  <p class="text-xs text-muted">{{ s.on_sale }} of {{ s.total_products }} items on sale</p>
-                  <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-                    <div class="h-full rounded-full bg-sale" [style.width.%]="s.sale_share"></div>
-                  </div>
+              <a class="pk-storetag" [class.pk-storetag--quiet]="!s.on_sale" [routerLink]="['/sales']" [queryParams]="{ store: s.slug }">
+                <div class="pk-storetag__name">{{ s.name }}</div>
+                @if (s.on_sale) {
+                  <div class="pk-storetag__deal">Up to {{ s.max_discount | number: '1.0-0' }}% off</div>
+                  <div class="pk-storetag__meta">{{ s.on_sale | number }} of {{ s.total_products | number }} items</div>
                 } @else {
-                  <p class="mt-1 text-sm text-muted">No sale right now</p>
+                  <div class="pk-storetag__deal">No sale right now</div>
+                  <div class="pk-storetag__meta">Checked {{ s.last_scraped_at | timeAgo }}</div>
                 }
+                <div class="pk-storetag__meter"><span [style.width.%]="s.sale_share"></span></div>
               </a>
             }
           </div>
         </section>
       }
 
-      <section aria-labelledby="trending">
-        <div class="mb-4 flex items-end justify-between gap-4">
+      <section class="mt-12 sm:mt-[72px]" aria-labelledby="best-value">
+        <div class="mb-6 flex items-end justify-between gap-4">
           <div>
-            <h2 id="trending" class="section-title">Best value picks</h2>
-            <p class="text-sm text-muted">Big discounts on items priced below similar products.</p>
+            <h2 id="best-value" class="t-display-lg">Best value</h2>
+            <p class="t-small mt-2">Big discounts on items priced below similar products.</p>
           </div>
-          <a routerLink="/products" [queryParams]="{ sort: 'value' }" class="shrink-0 text-sm font-medium text-blue hover:underline">See more →</a>
+          <a routerLink="/products" [queryParams]="{ sort: 'value' }" class="pk-link shrink-0">See more</a>
         </div>
         @if (trending() === null) {
           <app-skeleton-grid [count]="8" />
         } @else if (trending()!.length) {
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
             @for (p of trending(); track p.id) {
               <app-product-card [product]="p" />
             }
           </div>
         } @else {
-          <app-empty-state
-            title="No products yet"
-            message="The catalogue fills up after the first background scrape. Run the seed or scrape command from the README."
-          />
+          <app-empty-state title="No products yet" message="The catalogue fills up after the first background scrape." />
         }
       </section>
 
-      @if (drops().length) {
-        <section aria-labelledby="drops">
-          <div class="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <h2 id="drops" class="section-title">Fresh price drops</h2>
-              <p class="text-sm text-muted">Prices that fell since our last check.</p>
-            </div>
-            <a routerLink="/sales" [queryParams]="{ tab: 'drops' }" class="shrink-0 text-sm font-medium text-blue hover:underline">All drops →</a>
+      @if (overview()?.recent_price_drops?.length) {
+        <section class="mt-12 sm:mt-[72px]" aria-labelledby="drops">
+          <div class="mb-6 flex items-end justify-between gap-4">
+            <h2 id="drops" class="t-display-lg">Fresh price drops</h2>
+            <a routerLink="/sales" [queryParams]="{ tab: 'drops' }" class="pk-link shrink-0">All drops</a>
           </div>
-          <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            @for (d of drops(); track d.product.id) {
+          <ul class="pk-ledger max-w-3xl">
+            @for (d of overview()!.recent_price_drops.slice(0, 6); track d.product.id) {
               <li>
-                <a [routerLink]="['/products', d.product.id]" class="card flex items-center gap-3 p-3 transition-colors hover:border-ink/40">
-                  <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-drop/10 text-sm font-bold text-drop"
-                    >−{{ d.drop_percentage | number: '1.0-0' }}%</span
-                  >
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-medium">{{ d.product.product_name }}</span>
-                    <span class="block text-xs text-muted"
-                      >{{ d.product.store_name }} · <s>{{ d.old_price | pkr }}</s> → <b class="text-ink">{{ d.new_price | pkr }}</b></span
-                    >
+                <a class="pk-drop" [routerLink]="['/products', d.product.id]">
+                  <span class="pk-drop__pct">−{{ d.drop_percentage | number: '1.0-0' }}%</span>
+                  <span class="min-w-0">
+                    <span class="pk-drop__name">{{ d.product.product_name }}</span>
+                    <span class="pk-drop__store">{{ d.product.store_name }} · {{ d.detected_at | timeAgo }}</span>
+                  </span>
+                  <span class="pk-drop__prices">
+                    <span class="pk-price__now block">{{ d.new_price | pkr }}</span>
+                    <span class="pk-price__was"><span class="sr-only">was </span>{{ d.old_price | pkr }}</span>
                   </span>
                 </a>
               </li>
@@ -160,6 +134,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
           </ul>
         </section>
       }
+      <div class="h-12 sm:h-[72px]"></div>
     </div>
   `,
 })
@@ -169,15 +144,19 @@ export class HomePage {
   protected query = '';
   protected readonly trending = signal<Product[] | null>(null);
   protected readonly overview = signal<SalesOverview | null>(null);
-  protected readonly drops = signal<PriceDrop[]>([]);
-  protected readonly storeCount = signal(0);
+  protected readonly facets = signal<Facets | null>(null);
+  protected readonly storeCount = computed(() => this.overview()?.stores.length ?? 0);
+  protected readonly lastChecked = computed(() => {
+    const times = (this.overview()?.stores ?? []).map((s) => s.last_scraped_at).filter((t): t is string => !!t);
+    return times.length ? [...times].sort().at(-1)! : null;
+  });
 
-  protected readonly examples = ['Best shirts under 3000', 'Lawn suits on sale', 'Earbuds under 5000', 'Samsung Galaxy', 'Perfume for men', 'Kids sneakers'];
+  protected readonly examples = ['Lawn suits on sale', 'Earbuds under 5000', "Men's kurta under 4000", 'Perfume for men', 'Kids sneakers'];
   protected readonly verticals = [
-    { key: 'fashion', label: 'Fashion', emoji: '👗', blurb: 'Kurtas, lawn, western, shoes' },
-    { key: 'electronics', label: 'Electronics', emoji: '🎧', blurb: 'Phones, audio, gadgets' },
-    { key: 'beauty', label: 'Beauty', emoji: '🧴', blurb: 'Fragrance, skin & hair care' },
-    { key: 'home', label: 'Home', emoji: '🛏️', blurb: 'Bedding, kitchen, décor' },
+    { key: 'fashion', label: 'Fashion', blurb: 'Kurtas, lawn, western, shoes' },
+    { key: 'electronics', label: 'Electronics', blurb: 'Phones, audio, gadgets' },
+    { key: 'beauty', label: 'Beauty', blurb: 'Fragrance, skin and hair' },
+    { key: 'home', label: 'Home', blurb: 'Bedding, kitchen, décor' },
   ];
 
   constructor() {
@@ -188,13 +167,15 @@ export class HomePage {
     this.api
       .sales()
       .pipe(catchError(() => of(null)))
-      .subscribe((ov) => {
-        this.overview.set(ov);
-        if (ov) {
-          this.drops.set(ov.recent_price_drops.slice(0, 6));
-          this.storeCount.set(ov.stores.length);
-        }
-      });
+      .subscribe((ov) => this.overview.set(ov));
+    this.api
+      .facets()
+      .pipe(catchError(() => of(null)))
+      .subscribe((f) => this.facets.set(f));
+  }
+
+  deptCount(vertical: string): number | null {
+    return this.facets()?.verticals.find((v) => v.value === vertical)?.count ?? null;
   }
 
   search(): void {

@@ -37,169 +37,161 @@ function filtersFrom(params: ParamMap): ProductFilters {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let f = filters();
-    <div class="mx-auto max-w-7xl px-4 py-8">
-      <header class="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-semibold sm:text-4xl">
-            @if (f.q) {
-              Results for “{{ f.q }}”
-            } @else if (f.category) {
-              {{ f.category | label }}
-            } @else if (f.vertical) {
-              {{ f.vertical | label }}
-            } @else {
-              All products
+    <div class="mx-auto max-w-7xl px-4 pt-6 sm:pt-10">
+      <h1 class="t-display-lg">
+        @if (f.q) {
+          “{{ f.q }}”
+        } @else if (f.category) {
+          {{ f.category | label }}
+        } @else if (f.vertical) {
+          {{ f.vertical | label }}
+        } @else {
+          All products
+        }
+      </h1>
+      @if (result(); as r) {
+        @if (!isError(r)) {
+          <p class="t-small mt-2">
+            <span class="font-mono text-blue">{{ r.total | number }}</span> items across stores
+            @if (understood().length) {
+              <span> · showing {{ understood().join(' · ') }}</span>
             }
-          </h1>
-          @if (result(); as r) {
-            @if (!isError(r)) {
-              <p class="mt-1 text-sm text-muted">{{ r.total | number }} items across stores</p>
+          </p>
+        }
+      }
+    </div>
+
+    <div class="sticky top-14 z-20 mt-4 border-b border-line bg-paper">
+      <div class="mx-auto max-w-7xl px-4 py-3">
+        <form (ngSubmit)="submitSearch()" class="pk-search pk-search--sm" role="search">
+          <label for="browse-q" class="sr-only">Search products</label>
+          <input id="browse-q" [(ngModel)]="draftQuery" name="q" placeholder="Search kurtas, phones, perfumes" autocomplete="off" />
+          <button type="submit">Search</button>
+        </form>
+        <div class="pk-strip mt-3 -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Quick filters">
+          <button type="button" class="pk-chip lg:hidden" (click)="showFilters.set(true)" aria-haspopup="dialog">
+            Filters
+            @if (activeCount()) {
+              <span class="pk-tray__count h-5 min-w-5 text-[11px]">{{ activeCount() }}</span>
+            }
+          </button>
+          <button type="button" class="pk-chip" [attr.aria-pressed]="!!f.on_sale" (click)="update({ on_sale: f.on_sale ? null : true })">On sale</button>
+          @for (g of genders; track g) {
+            <button type="button" class="pk-chip" [attr.aria-pressed]="f.gender === g" (click)="update({ gender: f.gender === g ? null : g })">{{ g | label }}</button>
+          }
+          @for (b of [2000, 5000]; track b) {
+            <button type="button" class="pk-chip" [attr.aria-pressed]="f.max_price === b && !f.min_price" (click)="update({ min_price: null, max_price: f.max_price === b ? null : b })">
+              Under {{ b | pkr }}
+            </button>
+          }
+          @for (v of facets()?.verticals ?? []; track v.value) {
+            @if (v.value !== 'other') {
+              <button type="button" class="pk-chip" [attr.aria-pressed]="f.vertical === v.value" (click)="update({ vertical: f.vertical === v.value ? null : v.value, category: null })">
+                {{ v.value | label }} <span class="pk-chip__count">{{ v.count }}</span>
+              </button>
             }
           }
         </div>
-        <div class="flex items-center gap-2">
-          <button type="button" class="btn-ghost lg:hidden" (click)="showFilters.set(!showFilters())" [attr.aria-expanded]="showFilters()">Filters</button>
-          <label class="flex items-center gap-2 text-sm">
-            <span class="text-muted">Sort</span>
-            <select class="input w-auto py-1.5" [ngModel]="f.sort" (ngModelChange)="update({ sort: $event })" name="sort">
+      </div>
+    </div>
+
+    <div class="mx-auto grid max-w-7xl gap-8 px-4 pb-16 pt-6 lg:grid-cols-[240px_1fr]">
+      @if (showFilters()) {
+        <div class="fixed inset-0 z-40 bg-charcoal/40 lg:hidden" (click)="showFilters.set(false)" aria-hidden="true"></div>
+      }
+      <aside
+        class="space-y-6 lg:static lg:block lg:bg-transparent lg:p-0"
+        [class.hidden]="!showFilters()"
+        [class.pk-sheet]="showFilters()"
+        [class.filters-sheet]="showFilters()"
+        [attr.role]="showFilters() ? 'dialog' : null"
+        [attr.aria-label]="'Filters'"
+      >
+        <div class="flex items-center justify-between lg:hidden">
+          <p class="t-heading">Filters</p>
+          <button type="button" class="pk-btn pk-btn--primary pk-btn--sm" (click)="showFilters.set(false)">Show results</button>
+        </div>
+
+        <label class="block">
+          <span class="t-label mb-2 block text-blue">Category</span>
+          <select class="pk-input" [ngModel]="f.category ?? ''" (ngModelChange)="update({ category: $event || null })" name="category">
+            <option value="">Any category</option>
+            @for (c of facets()?.categories ?? []; track c.value) {
+              @if (c.value !== 'other') {
+                <option [value]="c.value">{{ c.value | label }} ({{ c.count }})</option>
+              }
+            }
+          </select>
+        </label>
+
+        <fieldset>
+          <legend class="t-label mb-2 text-blue">Price</legend>
+          <div class="flex items-center gap-2">
+            <input class="pk-input font-mono" type="number" min="0" inputmode="numeric" placeholder="Min" [(ngModel)]="minPrice" name="min" aria-label="Minimum price in rupees" />
+            <span class="text-charcoal-muted">–</span>
+            <input class="pk-input font-mono" type="number" min="0" inputmode="numeric" placeholder="Max" [(ngModel)]="maxPrice" name="max" aria-label="Maximum price in rupees" />
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (b of budgets; track b) {
+              <button type="button" class="pk-chip" [attr.aria-pressed]="f.max_price === b && !f.min_price" (click)="minPrice = null; maxPrice = b; applyPrice()">Under {{ b | pkr }}</button>
+            }
+          </div>
+          <button type="button" class="pk-btn pk-btn--quiet pk-btn--sm mt-3 w-full" (click)="applyPrice()">Apply price</button>
+        </fieldset>
+
+        @if (facets()?.stores?.length) {
+          <fieldset>
+            <legend class="t-label mb-2 text-blue">Stores</legend>
+            <div class="max-h-72 overflow-y-auto border-t border-line">
+              @for (s of facets()!.stores; track s.value) {
+                <label class="flex min-h-11 cursor-pointer items-center gap-3 border-b border-line px-1 hover:bg-blue-tint">
+                  <input type="checkbox" class="h-[18px] w-[18px] accent-blue" [checked]="f.store?.includes(s.value)" (change)="toggleStore(s.value)" />
+                  <span class="flex-1 text-[15px]">{{ s.value | label }}</span>
+                  <span class="font-mono text-xs text-charcoal-muted">{{ s.count }}</span>
+                </label>
+              }
+            </div>
+          </fieldset>
+        }
+
+        @if (hasFilters()) {
+          <button type="button" class="pk-link" (click)="clear()">Clear all filters</button>
+        }
+      </aside>
+
+      <section aria-live="polite" aria-label="Results">
+        <div class="mb-4 flex items-center justify-end">
+          <label class="flex items-center gap-2">
+            <span class="t-label text-charcoal-muted">Sort</span>
+            <select class="pk-input w-auto" [ngModel]="f.sort" (ngModelChange)="update({ sort: $event })" name="sort">
               @for (s of sorts; track s.value) {
                 <option [value]="s.value">{{ s.label }}</option>
               }
             </select>
           </label>
         </div>
-      </header>
-
-      @if (understood().length) {
-        <div class="mb-5 flex flex-wrap items-center gap-2 text-sm">
-          <span class="text-muted">We understood:</span>
-          @for (u of understood(); track u) {
-            <span class="rounded-full bg-blue-soft px-3 py-1 text-xs font-medium text-blue">{{ u }}</span>
-          }
-        </div>
-      }
-
-      <div class="grid gap-8 lg:grid-cols-[240px_1fr]">
-        <aside class="space-y-6 text-sm lg:block" [class.hidden]="!showFilters()" aria-label="Filters">
-          <fieldset>
-            <legend class="mb-2 font-semibold">Department</legend>
-            <div class="flex flex-wrap gap-2">
-              <button type="button" [class]="!f.vertical ? 'chip-active' : 'chip'" (click)="update({ vertical: null, category: null })">All</button>
-              @for (v of facets()?.verticals ?? []; track v.value) {
-                <button type="button" [class]="f.vertical === v.value ? 'chip-active' : 'chip'" (click)="update({ vertical: v.value, category: null })">
-                  {{ v.value | label }} <span class="opacity-60">{{ v.count }}</span>
-                </button>
-              }
-            </div>
-          </fieldset>
-
-          <label class="block">
-            <span class="mb-2 block font-semibold">Category</span>
-            <select class="input" [ngModel]="f.category ?? ''" (ngModelChange)="update({ category: $event || null })" name="category">
-              <option value="">Any category</option>
-              @for (c of facets()?.categories ?? []; track c.value) {
-                @if (c.value !== 'other') {
-                  <option [value]="c.value">{{ c.value | label }} ({{ c.count }})</option>
-                }
-              }
-            </select>
-          </label>
-
-          @if (!f.vertical || f.vertical === 'fashion' || f.vertical === 'beauty') {
-            <fieldset>
-              <legend class="mb-2 font-semibold">For</legend>
-              <div class="flex flex-wrap gap-2">
-                @for (g of genders; track g) {
-                  <button type="button" [class]="f.gender === g ? 'chip-active' : 'chip'" (click)="update({ gender: f.gender === g ? null : g })">
-                    {{ g | label }}
-                  </button>
-                }
-              </div>
-            </fieldset>
-          }
-
-          <fieldset>
-            <legend class="mb-2 font-semibold">Price (PKR)</legend>
-            <div class="flex items-center gap-2">
-              <input class="input" type="number" min="0" placeholder="Min" [(ngModel)]="minPrice" name="min" aria-label="Minimum price" />
-              <span class="text-muted">–</span>
-              <input class="input" type="number" min="0" placeholder="Max" [(ngModel)]="maxPrice" name="max" aria-label="Maximum price" />
-            </div>
-            <div class="mt-2 flex flex-wrap gap-2">
-              @for (b of budgets; track b) {
-                <button type="button" class="chip" (click)="minPrice = null; maxPrice = b; applyPrice()">Under {{ b | pkr }}</button>
-              }
-            </div>
-            <button type="button" class="btn-ghost mt-2 w-full" (click)="applyPrice()">Apply price</button>
-          </fieldset>
-
-          <label class="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-line bg-card px-3 py-2.5">
-            <span class="font-semibold">On sale only</span>
-            <input
-              type="checkbox"
-              class="h-4 w-4 accent-[var(--color-sale)]"
-              [ngModel]="f.on_sale"
-              (ngModelChange)="update({ on_sale: $event || null })"
-              name="sale"
-            />
-          </label>
-
-          @if (facets()?.stores?.length) {
-            <fieldset>
-              <legend class="mb-2 font-semibold">Stores</legend>
-              <div class="max-h-64 space-y-1 overflow-y-auto pr-1">
-                @for (s of facets()!.stores; track s.value) {
-                  <label class="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 hover:bg-ink/5">
-                    <input type="checkbox" class="h-4 w-4 accent-[var(--color-ink)]" [checked]="f.store?.includes(s.value)" (change)="toggleStore(s.value)" />
-                    <span class="flex-1">{{ s.value | label }}</span>
-                    <span class="text-xs text-muted">{{ s.count }}</span>
-                  </label>
-                }
-              </div>
-            </fieldset>
-          }
-
-          @if (hasFilters()) {
-            <button type="button" class="w-full text-sm font-medium text-sale hover:underline" (click)="clear()">Clear all filters</button>
-          }
-        </aside>
-
-        <section aria-live="polite">
-          @let r = result();
-          @if (loading()) {
-            <app-skeleton-grid [count]="12" />
-          } @else if (r && isError(r)) {
-            <app-empty-state
-              title="Couldn't load products"
-              message="The API isn't responding. Check the backend is running and try again."
-              actionLabel="Retry"
-              (action)="reload()"
-            />
-          } @else if (r && r.items.length) {
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
-              @for (p of r.items; track p.id) {
-                <app-product-card [product]="p" />
-              }
-            </div>
-            @if (totalPages() > 1) {
-              <nav class="mt-8 flex items-center justify-center gap-3" aria-label="Pagination">
-                <button type="button" class="btn-ghost" [disabled]="(f.page ?? 1) <= 1" (click)="update({ page: (f.page ?? 1) - 1 }, false)">← Previous</button>
-                <span class="text-sm text-muted">Page {{ f.page }} of {{ totalPages() }}</span>
-                <button type="button" class="btn-ghost" [disabled]="(f.page ?? 1) >= totalPages()" (click)="update({ page: (f.page ?? 1) + 1 }, false)">
-                  Next →
-                </button>
-              </nav>
+        @let r = result();
+        @if (loading()) {
+          <app-skeleton-grid [count]="12" />
+        } @else if (r && isError(r)) {
+          <app-empty-state title="We couldn't load products" message="The price service isn't answering. Try again in a moment." actionLabel="Try again" (action)="reload()" />
+        } @else if (r && r.items.length) {
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 xl:grid-cols-4">
+            @for (p of r.items; track p.id) {
+              <app-product-card [product]="p" />
             }
-          } @else {
-            <app-empty-state
-              title="Nothing matched"
-              message="Try a broader search, raise your budget, or clear some filters."
-              actionLabel="Clear filters"
-              (action)="clear()"
-            />
+          </div>
+          @if (totalPages() > 1) {
+            <nav class="mt-10 flex items-center justify-between gap-3 border-t border-line pt-4" aria-label="Pagination">
+              <button type="button" class="pk-btn pk-btn--quiet pk-btn--sm" [disabled]="(f.page ?? 1) <= 1" (click)="update({ page: (f.page ?? 1) - 1 }, false)">Previous</button>
+              <span class="t-receipt">Page {{ f.page }} of {{ totalPages() }}</span>
+              <button type="button" class="pk-btn pk-btn--quiet pk-btn--sm" [disabled]="(f.page ?? 1) >= totalPages()" (click)="update({ page: (f.page ?? 1) + 1 }, false)">Next</button>
+            </nav>
           }
-        </section>
-      </div>
+        } @else {
+          <app-empty-state title="Nothing matched" message="Try a broader search, raise your budget, or clear a filter." actionLabel="Clear filters" (action)="clear()" />
+        }
+      </section>
     </div>
   `,
 })
@@ -221,6 +213,7 @@ export class ProductsPage {
   protected readonly showFilters = signal(false);
   protected readonly loading = signal(true);
   protected minPrice: number | null = null;
+  protected draftQuery = this.route.snapshot.queryParamMap.get('q') ?? '';
   protected maxPrice: number | null = null;
 
   protected readonly filters = toSignal(this.route.queryParamMap.pipe(map(filtersFrom)), { initialValue: filtersFrom(this.route.snapshot.queryParamMap) });
@@ -242,6 +235,7 @@ export class ProductsPage {
         this.loading.set(true);
         this.minPrice = f.min_price ?? null;
         this.maxPrice = f.max_price ?? null;
+        this.draftQuery = f.q ?? '';
       }),
       switchMap((f): Observable<Result | null> => {
         const { q, ...rest } = f;
@@ -278,6 +272,16 @@ export class ProductsPage {
     const f = this.filters();
     return !!(f.vertical || f.category || f.gender || f.store || f.min_price || f.max_price || f.on_sale || f.color);
   });
+
+  protected readonly activeCount = computed(() => {
+    const f = this.filters();
+    return [f.vertical, f.category, f.gender, f.min_price || f.max_price, f.on_sale, ...(f.store ?? [])].filter(Boolean).length;
+  });
+
+  submitSearch(): void {
+    const q = this.draftQuery.trim();
+    this.update({ q: q || null });
+  }
 
   protected isError(r: Result): r is { error: true } {
     return 'error' in r;

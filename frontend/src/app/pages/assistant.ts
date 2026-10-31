@@ -32,45 +32,46 @@ function readSession(): string | null {
   imports: [FormsModule, RouterLink, PkrPipe, ProductImage],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-4.5rem)]">
+    <div class="mx-auto flex h-[calc(100dvh-3.5rem-60px)] max-w-3xl flex-col px-4 sm:h-[calc(100dvh-3.5rem)]">
       <div #scroller class="flex-1 space-y-6 overflow-y-auto py-6" aria-live="polite">
         @if (!messages().length) {
-          <div class="pt-6 text-center sm:pt-12">
-            <p class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-ink to-pink-deep font-display text-xl text-white">✦</p>
-            <h1 class="text-3xl font-semibold">Your shopping assistant</h1>
-            <p class="mx-auto mt-2 max-w-md text-sm text-muted">
-              Ask in plain words. I search every store we track, compare similar items and find the best deals.
-              @if (productId()) {
-                <br /><span class="font-medium text-blue">I'm looking at the product you came from — ask me for cheaper alternatives.</span>
-              }
+          <div class="pt-4 sm:pt-10">
+            <h1 class="t-display-lg">Ask before you buy</h1>
+            <p class="t-small mt-3 max-w-md text-charcoal">
+              Ask in plain words. We search every store we track, compare similar items and point out the real deals.
             </p>
-            <div class="mx-auto mt-6 grid max-w-xl gap-2 sm:grid-cols-2">
+            @if (productId()) {
+              <p class="mt-3 max-w-md bg-bubblegum-soft px-3 py-2 text-[15px]">You came from a product page. Ask for cheaper alternatives to it.</p>
+            }
+            <ul class="mt-6 max-w-xl border-t-2 border-blue">
               @for (s of starters(); track s) {
-                <button type="button" class="card px-4 py-3 text-left text-sm transition-colors hover:border-ink/40" (click)="send(s)">{{ s }}</button>
+                <li>
+                  <button type="button" class="flex min-h-12 w-full items-center border-b border-line px-1 text-left text-[15px] font-semibold text-blue hover:bg-blue-tint" (click)="send(s)">{{ s }}</button>
+                </li>
               }
-            </div>
+            </ul>
           </div>
         }
 
         @for (m of messages(); track $index) {
           @if (m.role === 'user') {
             <div class="flex justify-end">
-              <p class="max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-r from-blue to-ink px-4 py-2.5 text-sm text-white">{{ m.text }}</p>
+              <p class="max-w-[85%] rounded-tag bg-blue px-4 py-2.5 text-[15px] text-on-blue">{{ m.text }}</p>
             </div>
           } @else {
-            <div class="flex gap-3">
-              <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink to-pink-deep text-sm text-white" aria-hidden="true">✦</span>
-              <div class="min-w-0 flex-1 space-y-3">
-                <div class="whitespace-pre-line text-sm leading-relaxed" [class.text-sale]="m.error">{{ m.text }}</div>
+            <div class="border-l-2 border-blue pl-4">
+              <p class="t-label mb-1 text-blue">Parakh</p>
+              <div class="space-y-3">
+                <div class="whitespace-pre-line text-[15px] leading-relaxed" [class.text-pink-ink]="m.error">{{ m.text }}</div>
                 @if (m.products?.length) {
-                  <div class="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+                  <div class="pk-strip">
                     @for (p of m.products; track p.id) {
-                      <a [routerLink]="['/products', p.id]" class="card w-40 shrink-0 snap-start overflow-hidden transition-colors hover:border-ink/40">
-                        <div class="aspect-square bg-paper"><app-product-image [src]="p.image_url" [vertical]="p.vertical" /></div>
-                        <div class="p-2.5">
-                          <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-muted">{{ p.store_name }}</p>
-                          <p class="line-clamp-2 text-xs font-medium">{{ p.product_name }}</p>
-                          <p class="mt-1 text-sm font-semibold" [class.text-sale]="p.discount_percentage > 0">{{ p.price | pkr }}</p>
+                      <a [routerLink]="['/products', p.id]" class="pk-card w-40 shrink-0">
+                        <div class="aspect-square overflow-hidden bg-paper"><app-product-image [src]="p.image_url" [label]="p.store_name || p.brand_name" /></div>
+                        <div class="flex flex-col gap-1 p-2.5">
+                          <span class="pk-card__store truncate">{{ p.store_name }}</span>
+                          <span class="line-clamp-2 text-[13px] font-semibold leading-snug">{{ p.product_name }}</span>
+                          <span class="pk-price__now text-[15px]" [class.pk-price__now--sale]="p.discount_percentage > 0">{{ p.price | pkr }}</span>
                         </div>
                       </a>
                     }
@@ -79,14 +80,14 @@ function readSession(): string | null {
                 @if (m.suggestions?.length && $last) {
                   <div class="flex flex-wrap gap-2">
                     @for (s of m.suggestions; track s) {
-                      <button type="button" class="chip" (click)="send(s)">{{ s }}</button>
+                      <button type="button" class="pk-chip" (click)="send(s)">{{ s }}</button>
                     }
                   </div>
                 }
                 @if (m.trace?.length) {
-                  <details class="text-[11px] text-muted">
-                    <summary class="cursor-pointer select-none">How I answered {{ m.usedLlm ? '(AI)' : '(rules)' }}</summary>
-                    <ol class="mt-1 list-decimal space-y-0.5 pl-5">
+                  <details class="t-small">
+                    <summary class="cursor-pointer select-none">How we answered ({{ m.usedLlm ? 'AI' : 'rules' }})</summary>
+                    <ol class="t-receipt mt-1 list-decimal pl-5">
                       @for (t of m.trace; track $index) {
                         <li>{{ t }}</li>
                       }
@@ -98,19 +99,12 @@ function readSession(): string | null {
           }
         }
         @if (busy()) {
-          <div class="flex gap-3" aria-label="Assistant is typing">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink to-pink-deep text-sm text-white">✦</span>
-            <span class="flex items-center gap-1 pt-2">
-              <span class="h-2 w-2 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]"></span>
-              <span class="h-2 w-2 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]"></span>
-              <span class="h-2 w-2 animate-bounce rounded-full bg-muted"></span>
-            </span>
-          </div>
+          <p class="t-small border-l-2 border-line pl-4" role="status">Checking prices…</p>
         }
       </div>
 
-      <form (ngSubmit)="send(draft)" class="sticky bottom-0 border-t border-line bg-paper pb-4 pt-3">
-        <div class="flex items-end gap-2 rounded-2xl border border-line bg-card p-2 shadow-sm focus-within:border-ink">
+      <form (ngSubmit)="send(draft)" class="border-t border-line bg-paper pb-3 pt-3">
+        <div class="pk-search h-auto items-end">
           <label class="flex-1">
             <span class="sr-only">Message</span>
             <textarea
@@ -119,16 +113,16 @@ function readSession(): string | null {
               rows="1"
               maxlength="2000"
               (keydown.enter)="onEnter($any($event))"
-              class="max-h-40 w-full resize-none bg-transparent px-2 py-1.5 text-sm focus:outline-none"
-              placeholder="e.g. best lawn suits under 5000 on sale"
+              class="block max-h-40 w-full resize-none bg-transparent px-4 py-3.5 text-base text-charcoal outline-none placeholder:text-charcoal-muted"
+              placeholder="Best lawn suits under 5000 on sale"
             ></textarea>
           </label>
-          <button class="btn-primary h-9 w-9 shrink-0 p-0" [disabled]="busy() || !draft.trim()" aria-label="Send">↑</button>
+          <button class="h-[52px] shrink-0 px-5" [disabled]="busy() || !draft.trim()">Ask</button>
         </div>
-        <div class="mt-2 flex justify-between text-[11px] text-muted">
-          <span>Prices come from our latest store scans — confirm on the store before buying.</span>
+        <div class="t-small mt-2 flex justify-between gap-4 text-xs">
+          <span>Prices come from our latest store checks. Confirm on the store before you buy.</span>
           @if (messages().length) {
-            <button type="button" class="hover:text-ink" (click)="reset()">New chat</button>
+            <button type="button" class="pk-link shrink-0 text-xs" (click)="reset()">New chat</button>
           }
         </div>
       </form>
@@ -149,7 +143,7 @@ export class AssistantPage {
   protected productId = () => (this.product() ? Number(this.product()) : null);
   protected starters = () =>
     this.productId()
-      ? ['Find cheaper alternatives to this', 'Is this the same price elsewhere?', 'Show similar items on sale', 'Which stores have sales?']
+      ? ['Find cheaper alternatives to this', 'Is this the same price elsewhere?', 'Show similar items on sale', 'Which stores have sales right now?']
       : ['Best shirts under 3000 for men', 'Lawn suits on sale', 'Cheaper alternatives to Samsung Galaxy A15', 'Which stores have sales right now?'];
 
   onEnter(event: KeyboardEvent): void {

@@ -16,26 +16,26 @@ import { EmptyState } from '../shared/states';
   imports: [FormsModule, RouterLink, PkrPipe, TimeAgoPipe, ProductImage, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mx-auto max-w-5xl px-4 py-8">
+    <div class="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:pt-10">
       @if (!auth.isLoggedIn()) {
         <div class="mx-auto max-w-md">
-          <h1 class="text-3xl font-semibold">{{ mode() === 'login' ? 'Welcome back' : 'Create your account' }}</h1>
-          <p class="mt-1 text-sm text-muted">Save products and get notified when their prices drop.</p>
-          <form (ngSubmit)="submit()" class="card mt-6 space-y-4 p-6">
+          <h1 class="t-display-lg">{{ mode() === 'login' ? 'Welcome back' : 'Create your account' }}</h1>
+          <p class="t-small mt-2">Save products and get notified when their prices drop.</p>
+          <form (ngSubmit)="submit()" class="mt-6 space-y-4 rounded-tag border border-line bg-paper-raised p-5">
             @if (mode() === 'register') {
               <label class="block text-sm">
-                <span class="mb-1 block font-medium">Name</span>
-                <input class="input" [(ngModel)]="name" name="name" autocomplete="name" />
+                <span class="t-label mb-1 block text-blue">Name</span>
+                <input class="pk-input" [(ngModel)]="name" name="name" autocomplete="name" />
               </label>
             }
             <label class="block text-sm">
-              <span class="mb-1 block font-medium">Email</span>
-              <input class="input" type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
+              <span class="t-label mb-1 block text-blue">Email</span>
+              <input class="pk-input" type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
             </label>
             <label class="block text-sm">
-              <span class="mb-1 block font-medium">Password</span>
+              <span class="t-label mb-1 block text-blue">Password</span>
               <input
-                class="input"
+                class="pk-input"
                 type="password"
                 [(ngModel)]="password"
                 name="password"
@@ -44,16 +44,16 @@ import { EmptyState } from '../shared/states';
                 [attr.autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
               />
               @if (mode() === 'register') {
-                <span class="mt-1 block text-xs text-muted">At least 8 characters.</span>
+                <span class="t-small mt-1 block">At least 8 characters.</span>
               }
             </label>
             @if (error()) {
-              <p class="text-sm text-sale" role="alert">{{ error() }}</p>
+              <p class="text-[15px] font-semibold text-pink-ink" role="alert">{{ error() }}</p>
             }
-            <button class="btn-primary w-full" [disabled]="busy()">{{ mode() === 'login' ? 'Sign in' : 'Create account' }}</button>
-            <p class="text-center text-sm text-muted">
+            <button class="pk-btn pk-btn--primary w-full" [disabled]="busy()">{{ mode() === 'login' ? 'Sign in' : 'Create account' }}</button>
+            <p class="t-small text-center">
               {{ mode() === 'login' ? 'New here?' : 'Already have an account?' }}
-              <button type="button" class="font-medium text-blue hover:underline" (click)="mode.set(mode() === 'login' ? 'register' : 'login'); error.set('')">
+              <button type="button" class="pk-link" (click)="mode.set(mode() === 'login' ? 'register' : 'login'); error.set('')">
                 {{ mode() === 'login' ? 'Create an account' : 'Sign in' }}
               </button>
             </p>
@@ -62,33 +62,33 @@ import { EmptyState } from '../shared/states';
       } @else {
         <header class="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 class="text-3xl font-semibold">Hi{{ auth.user()?.name ? ', ' + auth.user()!.name : '' }}</h1>
-            <p class="text-sm text-muted">{{ auth.user()?.email }}</p>
+            <h1 class="t-display-lg">Hi{{ auth.user()?.name ? ', ' + auth.user()!.name : '' }}</h1>
+            <p class="t-small mt-2">{{ auth.user()?.email }}</p>
           </div>
-          <button type="button" class="btn-ghost" (click)="auth.logout()">Sign out</button>
+          <button type="button" class="pk-btn pk-btn--quiet pk-btn--sm" (click)="auth.logout()">Sign out</button>
         </header>
 
         <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
           <section aria-labelledby="saved">
-            <h2 id="saved" class="section-title mb-4">Saved items</h2>
+            <h2 id="saved" class="t-heading mb-3">Saved items</h2>
             @if (wishlist().length) {
-              <ul class="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
+              <ul class="pk-ledger">
                 @for (w of wishlist(); track w.id) {
-                  <li class="flex items-center gap-4 p-3">
-                    <a [routerLink]="['/products', w.product.id]" class="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-paper">
-                      <app-product-image [src]="w.product.image_url" [vertical]="w.product.vertical" />
+                  <li class="flex items-center gap-4 border-b border-line py-3">
+                    <a [routerLink]="['/products', w.product.id]" class="h-20 w-16 shrink-0 overflow-hidden rounded-tag border border-line">
+                      <app-product-image [src]="w.product.image_url" [label]="w.product.store_name || w.product.brand_name" />
                     </a>
                     <div class="min-w-0 flex-1">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-muted">{{ w.product.store_name }}</p>
-                      <a [routerLink]="['/products', w.product.id]" class="line-clamp-1 font-medium hover:underline">{{ w.product.product_name }}</a>
+                      <p class="pk-card__store">{{ w.product.store_name }}</p>
+                      <a [routerLink]="['/products', w.product.id]" class="t-title mt-1 line-clamp-1 hover:underline">{{ w.product.product_name }}</a>
                       <p class="text-sm">
-                        <b [class.text-sale]="w.product.discount_percentage > 0">{{ w.product.price | pkr }}</b>
+                        <b class="font-mono text-blue" [class.text-pink-ink]="w.product.discount_percentage > 0">{{ w.product.price | pkr }}</b>
                         @if (w.target_price) {
-                          <span class="text-xs text-muted"> · alert below {{ w.target_price | pkr }}</span>
+                          <span class="t-small"> · alert below {{ w.target_price | pkr }}</span>
                         }
                       </p>
                     </div>
-                    <button type="button" class="text-sm text-muted hover:text-sale" (click)="remove(w)">Remove</button>
+                    <button type="button" class="pk-link" (click)="remove(w)">Remove</button>
                   </li>
                 }
               </ul>
@@ -99,26 +99,26 @@ import { EmptyState } from '../shared/states';
 
           <section aria-labelledby="alerts">
             <div class="mb-4 flex items-center justify-between">
-              <h2 id="alerts" class="section-title">Price alerts</h2>
+              <h2 id="alerts" class="t-heading">Price alerts</h2>
               @if (hasUnread()) {
-                <button type="button" class="text-xs font-medium text-blue hover:underline" (click)="markRead()">Mark all read</button>
+                <button type="button" class="pk-link text-xs" (click)="markRead()">Mark all read</button>
               }
             </div>
             @if (notifications().length) {
-              <ul class="space-y-2">
+              <ul class="pk-ledger">
                 @for (n of notifications(); track n.id) {
-                  <li class="card p-3 text-sm" [class.border-pink]="!n.is_read">
+                  <li class="border-b border-line py-3 text-[15px]" [class.bg-bubblegum-soft]="!n.is_read" [class.px-2]="!n.is_read">
                     @if (n.product_id) {
                       <a [routerLink]="['/products', n.product_id]" class="hover:underline">{{ n.message }}</a>
                     } @else {
                       {{ n.message }}
                     }
-                    <p class="mt-1 text-xs text-muted">{{ n.created_at | timeAgo }}</p>
+                    <p class="t-receipt mt-1 text-charcoal-muted">{{ n.created_at | timeAgo }}</p>
                   </li>
                 }
               </ul>
             } @else {
-              <p class="card p-4 text-sm text-muted">No alerts yet. We check prices every few hours and notify you here when a saved item gets cheaper.</p>
+              <p class="t-small border-t-2 border-blue pt-3">No alerts yet. We check prices every few hours and notify you here when a saved item gets cheaper.</p>
             }
           </section>
         </div>
