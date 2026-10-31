@@ -10,6 +10,7 @@ import { WishlistService } from '../core/wishlist.service';
 import { LabelPipe, PkrPipe, TimeAgoPipe } from '../shared/format';
 import { PriceChart } from '../shared/price-chart';
 import { ProductImage } from '../shared/product-image';
+import { Odometer, Reveal } from '../shared/motion';
 import { EmptyState } from '../shared/states';
 
 interface StoreRow {
@@ -23,7 +24,7 @@ interface StoreRow {
 
 @Component({
   selector: 'app-product-detail',
-  imports: [RouterLink, DecimalPipe, PkrPipe, LabelPipe, TimeAgoPipe, ProductImage, PriceChart, EmptyState],
+  imports: [RouterLink, DecimalPipe, PkrPipe, LabelPipe, TimeAgoPipe, ProductImage, PriceChart, EmptyState, Odometer, Reveal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-7xl px-4 pb-16 pt-6">
@@ -37,7 +38,7 @@ interface StoreRow {
         </nav>
 
         <div class="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-12">
-          <div class="relative aspect-[4/5] overflow-hidden rounded-tag border border-line bg-paper-raised lg:sticky lg:top-20 lg:self-start" [style.view-transition-name]="'product-' + p.id">
+          <div appReveal class="relative aspect-[4/5] overflow-hidden rounded-tag border border-line bg-paper-raised opacity-100! transform-none! lg:sticky lg:top-20 lg:self-start" [style.view-transition-name]="'product-' + p.id">
             <app-product-image [src]="p.image_url" [alt]="p.product_name" [label]="p.store_name || p.brand_name" />
             @if (p.discount_percentage > 0) {
               <span class="pk-sticker absolute left-3 top-3">−{{ p.discount_percentage | number: '1.0-0' }}%</span>
@@ -52,7 +53,7 @@ interface StoreRow {
               <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
                 @if (isLowest()) {
                   <span class="pk-circled">
-                    <span class="t-price-xl" [class.text-pink-ink]="p.discount_percentage > 0" [class.text-blue]="!p.discount_percentage">{{ p.price | pkr }}</span>
+                    <app-odometer class="t-price-xl" [class.text-pink-ink]="p.discount_percentage > 0" [class.text-blue]="!p.discount_percentage" [value]="p.price" />
                     <svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
                       <path d="M30 8 C 80 -2, 170 2, 192 22 C 206 40, 150 58, 92 56 C 34 54, 2 44, 6 28 C 9 15, 40 6, 70 5" />
                     </svg>

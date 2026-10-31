@@ -926,3 +926,429 @@
     animation: none !important;
   }
 }
+
+/* ============================================================================================
+ * Motion & material layer. Everything here comes from Parakh's world: printed ink, receipt
+ * paper, price tags, stickers. Only transform/opacity animate; reduced motion snaps to the end.
+ * ========================================================================================== */
+:root {
+  /* Damped springs sampled from x(t) = 1 − e^(−ζωt)(cos ω_d t + ζω/ω_d sin ω_d t). */
+  --spring-slap: linear(0, 0.06, 0.204, 0.384, 0.568, 0.734, 0.87, 0.97, 1.038, 1.077, 1.093, 1.093, 1.083, 1.067, 1.049, 1.032, 1.018, 1.007, 0.999, 0.994, 0.992, 0.991, 0.992, 0.993, 1);
+  --spring-tap: linear(0, 0.045, 0.154, 0.295, 0.443, 0.584, 0.708, 0.812, 0.893, 0.954, 0.996, 1.024, 1.039, 1.045, 1.046, 1.042, 1.036, 1.029, 1.023, 1.016, 1.011, 1.007, 1.003, 1.001, 1);
+  --spring-soft: linear(0, 0.058, 0.189, 0.348, 0.505, 0.644, 0.759, 0.849, 0.915, 0.96, 0.99, 1.007, 1.016, 1.02, 1.019, 1.017, 1.014, 1.011, 1.008, 1.006, 1.004, 1.002, 1.001, 1, 1);
+  /* Film grain: one 180px feTurbulence tile, rasterised once, composited as its own layer. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.06 0 0 0 0 0.16 0 0 0 1.35 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Printed-ink grain (≈5%) baked into the paper itself rather than a full-screen overlay layer,
+   so it costs nothing per frame. The hero carries its own, slightly heavier grain. */
+body {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(rgb(242 241 238 / 0.95), rgb(242 241 238 / 0.95)),
+    var(--grain);
+  background-size: auto, 180px 180px;
+}
+.pk-sheet,
+.pk-slip--raised {
+  background-image:
+    linear-gradient(rgb(242 241 238 / 0.95), rgb(242 241 238 / 0.95)),
+    var(--grain);
+  background-size: auto, 180px 180px;
+}
+.pk-slip--raised {
+  background-image:
+    linear-gradient(rgb(251 250 248 / 0.95), rgb(251 250 248 / 0.95)),
+    var(--grain);
+}
+
+/* ---------- Tap: every press gets an immediate spring ---------- */
+:where(.pk-btn, .pk-chip, .pk-storetag, .pk-dept, .pk-tagnav a, .pk-card__save, .pk-mtag) {
+  transition-property: transform, box-shadow, background-color, color, border-color;
+  transition-duration: 280ms;
+  transition-timing-function: var(--spring-tap);
+}
+:where(.pk-chip, .pk-storetag, .pk-dept, .pk-tagnav a, .pk-card__save, .pk-mtag):active {
+  transform: scale(0.95);
+  transition-duration: 110ms;
+  transition-timing-function: ease-out;
+}
+.pk-btn:not(:disabled):active {
+  transition-duration: 110ms;
+  transition-timing-function: ease-out;
+}
+
+/* ---------- Hero: an ink field, not a tech gradient ---------- */
+.pk-inkhero {
+  --hp: 0; /* 0 at the top, 1 once the hero has scrolled away (set from scroll) */
+  --mx: 0; /* -1..1 pointer/finger offset */
+  --my: 0;
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--color-blue);
+  color: var(--color-on-blue);
+  contain: paint;
+}
+.pk-ink {
+  position: absolute;
+  inset: -25%;
+  z-index: -2;
+  pointer-events: none;
+  will-change: transform;
+}
+/* Deep fold of blue-ink: gives the blue a printed, uneven density. */
+.pk-ink--fold {
+  background: radial-gradient(55% 45% at 22% 18%, rgb(11 26 71 / 0.85), rgb(11 26 71 / 0) 70%);
+  transform: translate3d(calc(var(--mx) * -14px), calc(var(--hp) * -60px + var(--my) * -10px), 0);
+}
+/* Paper seam: blue never meets pink directly (that mix turns purple). It thins into charcoal white
+   first, then the pink glow sits inside the paper. */
+.pk-ink--seam {
+  background: radial-gradient(62% 54% at 84% 92%, #f2f1ee 0%, #f2f1ee 44%, rgb(242 241 238 / 0.55) 60%, rgb(242 241 238 / 0.18) 72%, rgb(242 241 238 / 0) 84%);
+  transform: translate3d(calc(var(--mx) * 18px - var(--hp) * 120px), calc(var(--my) * 12px - var(--hp) * 160px), 0) scale(calc(1 + var(--hp) * 0.35));
+}
+.pk-ink--glow {
+  background: radial-gradient(27% 25% at 84% 92%, #ff7ab8 0%, #ff7ab8 30%, rgb(255 122 184 / 0.6) 62%, rgb(255 122 184 / 0) 100%);
+  transform: translate3d(calc(var(--mx) * 26px - var(--hp) * 120px), calc(var(--my) * 18px - var(--hp) * 170px), 0) scale(calc(1 + var(--hp) * 0.45));
+}
+/* Heavier grain on the hero so the colour reads as ink on paper. */
+.pk-inkhero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--grain);
+  opacity: 0.06;
+  pointer-events: none;
+}
+/* Dissolves into charcoal white as the paper slides over it. */
+.pk-inkhero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--color-paper);
+  opacity: calc(var(--hp) * 1.25);
+  pointer-events: none;
+}
+.pk-inkhero h1 {
+  color: var(--color-on-blue);
+  /* Weight and width tighten as you scroll, like type being set tighter for a smaller tag. */
+  font-variation-settings:
+    'wdth' calc(125 - var(--hp) * 45),
+    'wght' calc(800 + var(--hp) * 100);
+  font-stretch: normal;
+  transform: translate3d(0, calc(var(--hp) * -40px), 0);
+  opacity: calc(1 - var(--hp) * 1.1);
+}
+.pk-inkhero :is(p, form, .pk-chip, .pk-btn) {
+  opacity: calc(1 - var(--hp) * 1.6);
+}
+.pk-inkhero .pk-hero__mark {
+  transform: rotate(calc(-1.5deg - var(--hp) * 3deg));
+}
+
+/* ---------- Stacked paper: content slides over the hero like a receipt pulled from a till ---------- */
+.pk-sheet {
+  position: relative;
+  z-index: 2;
+  margin-top: -28px;
+  background: var(--color-paper);
+  /* torn receipt edge along the top */
+  -webkit-mask:
+    radial-gradient(circle 6px at 50% 0, transparent 97%, #000) 0 0 / 15px 14px repeat-x,
+    linear-gradient(#000, #000) 0 13px / 100% calc(100% - 13px) no-repeat;
+  mask:
+    radial-gradient(circle 6px at 50% 0, transparent 97%, #000) 0 0 / 15px 14px repeat-x,
+    linear-gradient(#000, #000) 0 13px / 100% calc(100% - 13px) no-repeat;
+  padding-top: 14px;
+}
+.pk-slip {
+  --sp: 1;
+  position: relative;
+  transform: translate3d(0, calc((1 - var(--sp)) * 56px), 0);
+}
+.pk-slip--raised {
+  background: var(--color-paper-raised);
+  border-top: 1px dashed var(--color-line-strong);
+  box-shadow: 0 -10px 24px -18px rgb(20 42 110 / 0.35);
+}
+
+/* ---------- Reveal: cards rise in sequence ---------- */
+.pk-reveal {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition:
+    opacity 260ms ease-out,
+    transform 520ms var(--spring-soft);
+  transition-delay: calc(min(var(--i, 0), 8) * 55ms);
+}
+.pk-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Tilt toward the finger ---------- */
+.pk-tilt {
+  --rx: 0deg;
+  --ry: 0deg;
+  transform: perspective(700px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 300ms var(--spring-tap);
+}
+.pk-tilt.is-pressed {
+  transition-duration: 90ms;
+  transition-timing-function: linear;
+}
+
+/* ---------- Odometer price ---------- */
+.pk-odo {
+  display: inline-flex;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+.pk-odo__col {
+  display: inline-block;
+  height: 1.1em;
+  line-height: 1.1em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.pk-odo__strip {
+  display: block;
+  transform: translate3d(0, calc(var(--d, 0) * -1.1em), 0);
+  transition: transform 720ms var(--spring-soft);
+  transition-delay: calc(var(--c, 0) * 45ms + 120ms);
+}
+
+/* ---------- Sale stickers spring on with real physics (one overshoot, then settle) ---------- */
+.pk-sticker {
+  animation: none;
+  transform: rotate(-4deg) scale(1);
+  transition:
+    opacity 90ms linear 220ms,
+    transform 640ms var(--spring-slap) 220ms;
+}
+/* Waiting to be slapped on: hidden until its card enters view. */
+.pk-reveal:not(.is-in) .pk-sticker {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0) rotate(-14deg) scale(1.55);
+  transition: none;
+}
+
+/* ---------- Receipt prints in when it enters view ---------- */
+/* The observed wrapper stays unclipped (a clipped target never "intersects"); the receipt inside it
+   prints line by line once the wrapper is in view. */
+.pk-print.pk-reveal {
+  opacity: 1;
+  transform: none;
+}
+.pk-print .pk-receipt {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 700ms steps(14, end);
+}
+.pk-print.is-in .pk-receipt {
+  clip-path: inset(0);
+}
+
+/* ---------- Store-tag marquee (moves with your scroll, swipe it freely) ---------- */
+.pk-marquee {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 6px 16px 14px;
+  overscroll-behavior-x: contain;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  mask: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+.pk-marquee::-webkit-scrollbar {
+  display: none;
+}
+.pk-mtag {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 16px 0 30px;
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+  /* tag silhouette: angled left end */
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+  color: var(--color-charcoal);
+  text-decoration: none;
+}
+.pk-mtag::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+}
+.pk-mtag__name {
+  font: 800 15px/1 var(--font-display);
+  font-stretch: 100%;
+  color: var(--color-blue);
+}
+.pk-mtag__deal {
+  font: 800 15px/1 var(--font-display);
+  font-stretch: 75%;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-pink-ink);
+}
+.pk-mtag--sale {
+  background: var(--color-bubblegum-soft);
+}
+
+/* ---------- Header over the ink hero ---------- */
+.pk-header {
+  transition: background-color 200ms ease-out, border-color 200ms ease-out;
+}
+.pk-header.is-over-ink {
+  background: transparent;
+  border-color: transparent;
+}
+.pk-header.is-over-ink .pk-wordmark__latin {
+  color: var(--color-on-blue);
+}
+.pk-header.is-over-ink .pk-wordmark__urdu {
+  color: var(--color-bubblegum);
+}
+.pk-header.is-over-ink :is(.pk-navlink, .pk-hdr-icon) {
+  color: var(--color-on-blue);
+}
+
+/* ---------- Floating price-tag nav (phones) ---------- */
+.pk-tagnav {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 45;
+  display: flex;
+  height: 62px;
+  padding-left: 22px;
+  /* blurs only what is directly behind the tag */
+  background: rgb(242 241 238 / 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  clip-path: polygon(18px 0, 100% 0, 100% 100%, 18px 100%, 0 50%);
+  border-radius: 0 4px 4px 0;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+.pk-tagnav::before {
+  /* punched hole */
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 999px;
+  background: var(--color-blue);
+  opacity: 0.85;
+}
+.pk-tagnav a {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font: 700 11px/1 var(--font-sans);
+  color: var(--color-charcoal-muted);
+  text-decoration: none;
+}
+.pk-tagnav a svg {
+  position: relative;
+  z-index: 1;
+}
+.pk-tagnav a span {
+  position: relative;
+  z-index: 1;
+}
+.pk-tagnav a::before {
+  /* the active tab gets a bubblegum sticker slapped behind its icon */
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 38px;
+  height: 26px;
+  margin-left: -19px;
+  border-radius: 3px;
+  background: var(--color-bubblegum);
+  box-shadow: 2px 2px 0 var(--color-blue-ink);
+  opacity: 0;
+  transform: rotate(-14deg) scale(0.4);
+  transition:
+    opacity 80ms linear,
+    transform 520ms var(--spring-slap);
+}
+.pk-tagnav a[aria-current='page'] {
+  color: var(--color-blue);
+}
+.pk-tagnav a[aria-current='page']::before {
+  opacity: 1;
+  transform: rotate(-5deg) scale(1);
+}
+.pk-tagnav a[aria-current='page'] svg {
+  color: var(--color-blue-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-reveal,
+  .pk-sticker,
+  .pk-slip,
+  .pk-print .pk-receipt {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+  .pk-sticker {
+    transform: rotate(-4deg) !important;
+  }
+  .pk-inkhero {
+    --hp: 0 !important;
+  }
+  .pk-ink {
+    transform: none !important;
+  }
+}
+
+/* Hero controls sit on solid paper/ink so they stay readable wherever the ink thins out. */
+.pk-on-blue .pk-chip.pk-chip--solid {
+  background: var(--color-paper-raised);
+  border-color: var(--color-paper-raised);
+  color: var(--color-blue);
+}
+.pk-on-blue .pk-chip.pk-chip--solid:hover {
+  border-color: var(--color-bubblegum);
+}
+.pk-inkhero .pk-btn--quiet {
+  background: var(--color-blue-ink);
+  color: var(--color-on-blue);
+  box-shadow: inset 0 0 0 1.5px var(--color-on-blue);
+}
+/* Ink has a little inertia, like light moving across printed paper. */
+.pk-ink {
+  transition: transform 500ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+/* The floating tag nav is for phones; desktop uses the header links. */
+@media (min-width: 640px) {
+  .pk-tagnav {
+    display: none;
+  }
+}

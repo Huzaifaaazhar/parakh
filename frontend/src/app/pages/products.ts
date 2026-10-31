@@ -9,6 +9,7 @@ import { ApiService } from '../core/api.service';
 import { Facets, Page, Product, ProductFilters, SearchResponse, SortOption } from '../core/models';
 import { LabelPipe, PkrPipe } from '../shared/format';
 import { ProductCard } from '../shared/product-card';
+import { Reveal } from '../shared/motion';
 import { EmptyState, SkeletonGrid } from '../shared/states';
 
 type Result = (Page<Product> & Partial<Pick<SearchResponse, 'parsed_filters' | 'semantic'>>) | { error: true };
@@ -33,7 +34,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
 
 @Component({
   selector: 'app-products',
-  imports: [FormsModule, DecimalPipe, PkrPipe, LabelPipe, ProductCard, SkeletonGrid, EmptyState],
+  imports: [FormsModule, DecimalPipe, PkrPipe, LabelPipe, ProductCard, SkeletonGrid, EmptyState, Reveal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let f = filters();
@@ -177,8 +178,8 @@ function filtersFrom(params: ParamMap): ProductFilters {
           <app-empty-state title="We couldn't load products" message="The price service isn't answering. Try again in a moment." actionLabel="Try again" (action)="reload()" />
         } @else if (r && r.items.length) {
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 xl:grid-cols-4">
-            @for (p of r.items; track p.id) {
-              <app-product-card [product]="p" />
+            @for (p of r.items; track p.id; let i = $index) {
+              <app-product-card [product]="p" [appReveal]="i" />
             }
           </div>
           @if (totalPages() > 1) {

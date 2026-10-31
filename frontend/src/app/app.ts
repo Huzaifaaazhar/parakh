@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { AuthService } from './core/auth.service';
 import { CompareTrayService } from './core/compare-tray.service';
 import { PkrPipe } from './shared/format';
+import { Motion } from './shared/motion';
 import { ProductImage } from './shared/product-image';
 
 @Component({
@@ -14,7 +15,7 @@ import { ProductImage } from './shared/product-image';
   template: `
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-paper-raised focus:px-3 focus:py-2">Skip to content</a>
 
-    <header class="sticky top-0 z-30 border-b border-line bg-paper">
+    <header class="pk-header sticky top-0 z-30 border-b border-line bg-paper" [class.is-over-ink]="motion.overInk()">
       <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
         <a routerLink="/" class="pk-wordmark" aria-label="Parakh home">
           <span class="pk-wordmark__latin">Parakh</span>
@@ -28,18 +29,18 @@ import { ProductImage } from './shared/product-image';
             {{ auth.isLoggedIn() ? 'My list' : 'Sign in' }}
           </a>
         </nav>
-        <a routerLink="/products" class="ml-auto grid h-10 w-10 place-items-center text-blue sm:hidden" aria-label="Search products">
+        <a routerLink="/products" class="pk-hdr-icon ml-auto grid h-10 w-10 place-items-center text-blue sm:hidden" aria-label="Search products">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
         </a>
       </div>
     </header>
 
-    <main id="main" class="min-h-[70vh] pb-20 sm:pb-0">
+    <main id="main" class="min-h-[70vh] pb-24 sm:pb-0">
       <router-outlet />
     </main>
 
     @if (tray.count() > 0 && !onComparePage()) {
-      <div class="fixed inset-x-0 bottom-[60px] z-40 sm:bottom-0" role="region" aria-label="Compare tray">
+      <div class="fixed inset-x-0 bottom-[84px] z-40 px-3 sm:bottom-0 sm:px-0" role="region" aria-label="Compare tray">
         <div class="pk-tray mx-auto max-w-3xl">
           <div class="pk-tray__thumbs">
             @for (p of tray.items(); track p.id) {
@@ -62,7 +63,7 @@ import { ProductImage } from './shared/product-image';
       </div>
     }
 
-    <footer class="border-t border-line bg-paper pb-20 sm:pb-0">
+    <footer class="relative z-[3] border-t border-line bg-paper pb-24 sm:pb-0">
       <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
         <p class="t-small">
           <span class="pk-wordmark__urdu" lang="ur" dir="rtl">پرکھ</span>
@@ -72,13 +73,13 @@ import { ProductImage } from './shared/product-image';
       </div>
     </footer>
 
-    <nav class="pk-tabbar fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] sm:hidden" aria-label="Tabs">
+    <nav class="pk-tagnav sm:hidden" aria-label="Tabs">
       @for (tab of tabs; track tab.path) {
         <a [routerLink]="tab.path" routerLinkActive #t="routerLinkActive" [routerLinkActiveOptions]="{ exact: tab.path === '/' }" [attr.aria-current]="t.isActive ? 'page' : null">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
             <path [attr.d]="tab.icon" />
           </svg>
-          {{ tab.path === '/account' && !auth.isLoggedIn() ? 'Sign in' : tab.label }}
+          <span>{{ tab.path === '/account' && !auth.isLoggedIn() ? 'Sign in' : tab.label }}</span>
         </a>
       }
     </nav>
@@ -87,6 +88,7 @@ import { ProductImage } from './shared/product-image';
 export class App {
   protected readonly auth = inject(AuthService);
   protected readonly tray = inject(CompareTrayService);
+  protected readonly motion = inject(Motion);
   private readonly router = inject(Router);
   protected readonly onComparePage = signal(false);
   protected readonly links = [

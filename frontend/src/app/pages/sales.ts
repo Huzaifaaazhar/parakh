@@ -8,11 +8,12 @@ import { ApiService } from '../core/api.service';
 import { Page, PriceDrop, Product, SalesOverview } from '../core/models';
 import { LabelPipe, PkrPipe, TimeAgoPipe } from '../shared/format';
 import { ProductCard } from '../shared/product-card';
+import { CountUp, Reveal } from '../shared/motion';
 import { EmptyState, SkeletonGrid } from '../shared/states';
 
 @Component({
   selector: 'app-sales',
-  imports: [RouterLink, DecimalPipe, LabelPipe, PkrPipe, TimeAgoPipe, ProductCard, SkeletonGrid, EmptyState],
+  imports: [RouterLink, DecimalPipe, LabelPipe, PkrPipe, TimeAgoPipe, ProductCard, SkeletonGrid, EmptyState, Reveal, CountUp],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let q = params();
@@ -20,12 +21,12 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
       <h1 class="t-display-lg">Every sale, in one place</h1>
       @if (overview(); as ov) {
         <p class="t-small mt-2">{{ storesOnSale() }} of {{ ov.stores.length }} stores have something on sale right now.</p>
-        <dl class="pk-receipt mt-6 max-w-md">
-          <div><dt>On sale now</dt><span class="pk-leader"></span><dd class="is-sale">{{ ov.total_on_sale | number }}</dd></div>
-          <div><dt>Products tracked</dt><span class="pk-leader"></span><dd>{{ ov.total_products | number }}</dd></div>
-          <div><dt>Avg. discount</dt><span class="pk-leader"></span><dd>{{ ov.average_discount | number: '1.0-0' }}%</dd></div>
+        <div appReveal class="pk-print mt-6 max-w-md"><dl class="pk-receipt">
+          <div><dt>On sale now</dt><span class="pk-leader"></span><dd class="is-sale" [appCountUp]="ov.total_on_sale"></dd></div>
+          <div><dt>Products tracked</dt><span class="pk-leader"></span><dd [appCountUp]="ov.total_products"></dd></div>
+          <div><dt>Avg. discount</dt><span class="pk-leader"></span><dd [appCountUp]="ov.average_discount" suffix="%"></dd></div>
           <div><dt>Stores on sale</dt><span class="pk-leader"></span><dd>{{ storesOnSale() }} of {{ ov.stores.length }}</dd></div>
-        </dl>
+        </dl></div>
       }
 
       <div class="pk-strip mt-6 -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Department">
@@ -49,8 +50,8 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
             }
           </div>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            @for (s of ov.stores; track s.id) {
-              <button type="button" class="pk-storetag" [class.pk-storetag--quiet]="!s.on_sale" (click)="set({ store: q.store === s.slug ? null : s.slug })" [attr.aria-pressed]="q.store === s.slug">
+            @for (s of ov.stores; track s.id; let i = $index) {
+              <button type="button" [appReveal]="i" class="pk-storetag" [class.pk-storetag--quiet]="!s.on_sale" (click)="set({ store: q.store === s.slug ? null : s.slug })" [attr.aria-pressed]="q.store === s.slug">
                 <div class="pk-storetag__name">{{ s.name }}</div>
                 @if (s.on_sale) {
                   <div class="pk-storetag__deal">Up to {{ s.max_discount | number: '1.0-0' }}% off</div>
@@ -116,8 +117,8 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
             <app-skeleton-grid />
           } @else if (d.items.length) {
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
-              @for (p of d.items; track p.id) {
-                <app-product-card [product]="p" />
+              @for (p of d.items; track p.id; let i = $index) {
+                <app-product-card [product]="p" [appReveal]="i % 24" />
               }
             </div>
             @if (d.total > d.items.length) {

@@ -5,6 +5,7 @@ import { CompareTrayService } from '../core/compare-tray.service';
 import { Product } from '../core/models';
 import { WishlistService } from '../core/wishlist.service';
 import { PkrPipe, TimeAgoPipe } from './format';
+import { Odometer, Tilt } from './motion';
 import { ProductImage } from './product-image';
 
 /**
@@ -13,11 +14,12 @@ import { ProductImage } from './product-image';
  */
 @Component({
   selector: 'app-product-card',
-  imports: [RouterLink, PkrPipe, TimeAgoPipe, ProductImage],
+  host: { class: 'block h-full' },
+  imports: [RouterLink, PkrPipe, TimeAgoPipe, ProductImage, Tilt, Odometer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let p = product();
-    <article class="pk-card">
+    <article class="pk-card" appTilt>
       <div class="pk-card__media" [style.view-transition-name]="'product-' + p.id">
         <app-product-image [src]="p.image_url" [alt]="p.product_name" [label]="p.store_name || p.brand_name" />
         @if (p.drop_percentage) {
@@ -43,7 +45,7 @@ import { ProductImage } from './product-image';
         <span class="pk-card__store">{{ p.store_name || p.brand_name }}</span>
         <h3 class="pk-card__title"><a [routerLink]="['/products', p.id]">{{ p.product_name }}</a></h3>
         <div class="pk-price">
-          <span class="pk-price__now" [class.pk-price__now--sale]="onSale()">{{ p.price | pkr }}</span>
+          <app-odometer class="pk-price__now" [class.pk-price__now--sale]="onSale()" [value]="p.price" />
           @if (wasPrice(); as was) {
             <span class="pk-price__was"><span class="sr-only">was </span>{{ was | pkr }}</span>
           }
