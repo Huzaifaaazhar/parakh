@@ -15,42 +15,44 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
   imports: [FormsModule, RouterLink, DecimalPipe, PkrPipe, ProductCard, SkeletonGrid, EmptyState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="border-b border-line bg-gradient-to-b from-pink-soft/60 to-paper">
-      <div class="mx-auto max-w-7xl px-4 pb-12 pt-10 sm:pb-16 sm:pt-16">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-pink-deep">Pakistan's price checker</p>
+    <section class="bg-brand relative overflow-hidden text-white">
+      <div class="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-pink/40 blur-3xl" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-blue/50 blur-3xl" aria-hidden="true"></div>
+      <div class="relative mx-auto max-w-7xl px-4 pb-12 pt-10 sm:pb-16 sm:pt-16">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-pink-light">Pakistan's price checker</p>
         <h1 class="max-w-3xl text-4xl font-semibold leading-[1.05] sm:text-6xl">
-          Compare before you buy.<br /><span class="text-blue">Every store, every sale, one place.</span>
+          Compare before you buy.<br /><span class="text-pink-light">Every store, every sale, one place.</span>
         </h1>
-        <p class="mt-4 max-w-2xl text-base text-muted sm:text-lg">
+        <p class="mt-4 max-w-2xl text-base text-white/85 sm:text-lg">
           Clothes, shoes, phones, earbuds, perfumes and home goods from {{ storeCount() || 'dozens of' }} Pakistani stores — searched, matched and price-tracked
           for you.
         </p>
         <form (ngSubmit)="search()" class="mt-8 flex max-w-2xl flex-col gap-2 sm:flex-row" role="search">
           <label class="flex-1">
             <span class="sr-only">What are you looking for?</span>
-            <input [(ngModel)]="query" name="q" class="input h-12 rounded-full px-5 text-base shadow-sm" placeholder="e.g. men's kurta under 4000" />
+            <input [(ngModel)]="query" name="q" class="input h-12 rounded-full border-transparent bg-white px-5 text-base shadow-lg shadow-ink/30" placeholder="e.g. men's kurta under 4000" />
           </label>
           <button class="btn-accent h-12 px-6 text-base font-semibold">Search</button>
         </form>
         <div class="mt-4 flex flex-wrap gap-2">
           @for (q of examples; track q) {
-            <a [routerLink]="['/products']" [queryParams]="{ q }" class="chip">{{ q }}</a>
+            <a [routerLink]="['/products']" [queryParams]="{ q }" class="chip border-white/25 bg-white/10 text-white backdrop-blur hover:border-white/60 hover:bg-white/20">{{ q }}</a>
           }
-          <a routerLink="/assistant" class="chip border-pink bg-pink-soft text-pink-deep hover:border-pink-deep">✦ Ask the assistant</a>
+          <a routerLink="/assistant" class="chip border-transparent bg-gradient-to-r from-pink to-[#ff8cc0] font-semibold text-ink hover:brightness-105">✦ Ask the assistant</a>
         </div>
 
         @if (overview(); as ov) {
-          <dl class="mt-10 grid max-w-2xl grid-cols-3 gap-4">
-            <div>
-              <dt class="text-xs uppercase tracking-wider text-muted">Products tracked</dt>
+          <dl class="mt-10 grid max-w-2xl grid-cols-3 gap-3">
+            <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+              <dt class="text-xs uppercase tracking-wider text-white/75">Products tracked</dt>
               <dd class="font-display text-2xl font-semibold sm:text-3xl">{{ ov.total_products | number }}</dd>
             </div>
-            <div>
-              <dt class="text-xs uppercase tracking-wider text-muted">On sale now</dt>
-              <dd class="font-display text-2xl font-semibold text-sale sm:text-3xl">{{ ov.total_on_sale | number }}</dd>
+            <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+              <dt class="text-xs uppercase tracking-wider text-white/75">On sale now</dt>
+              <dd class="font-display text-2xl font-semibold text-pink-light sm:text-3xl">{{ ov.total_on_sale | number }}</dd>
             </div>
-            <div>
-              <dt class="text-xs uppercase tracking-wider text-muted">Avg. discount</dt>
+            <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+              <dt class="text-xs uppercase tracking-wider text-white/75">Avg. discount</dt>
               <dd class="font-display text-2xl font-semibold sm:text-3xl">{{ ov.average_discount | number: '1.0-0' }}%</dd>
             </div>
           </dl>
@@ -66,7 +68,7 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
             <a
               [routerLink]="['/products']"
               [queryParams]="{ vertical: v.key }"
-              class="card group flex flex-col gap-1 p-4 transition-colors hover:border-pink sm:p-5"
+              class="card group relative flex flex-col gap-1 overflow-hidden bg-gradient-to-br from-white via-white to-pink-soft p-4 transition-all hover:-translate-y-0.5 hover:border-pink hover:shadow-lg hover:shadow-pink/15 sm:p-5"
             >
               <span class="text-2xl" aria-hidden="true">{{ v.emoji }}</span>
               <span class="font-display text-lg font-semibold">{{ v.label }}</span>

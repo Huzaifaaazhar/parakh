@@ -16,14 +16,15 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let q = params();
-    <section class="border-b border-line bg-gradient-to-b from-pink-soft to-paper">
+    <section class="bg-brand-reverse relative overflow-hidden text-white">
+      <div class="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-pink/40 blur-3xl" aria-hidden="true"></div>
       <div class="mx-auto max-w-7xl px-4 py-10">
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sale">Sale aggregator</p>
-        <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Every sale, in one place</h1>
+        <p class="relative text-xs font-semibold uppercase tracking-[0.2em] text-pink-light">Sale aggregator</p>
+        <h1 class="relative mt-2 text-4xl font-semibold sm:text-5xl">Every sale, in one place</h1>
         @if (overview(); as ov) {
-          <p class="mt-3 max-w-2xl text-muted">
-            <b class="text-ink">{{ ov.total_on_sale | number }}</b> of {{ ov.total_products | number }} products are discounted right now, averaging
-            <b class="text-ink">{{ ov.average_discount | number: '1.0-0' }}% off</b> across {{ storesOnSale() }} stores.
+          <p class="mt-3 max-w-2xl text-white/85">
+            <b class="text-white">{{ ov.total_on_sale | number }}</b> of {{ ov.total_products | number }} products are discounted right now, averaging
+            <b class="text-white">{{ ov.average_discount | number: '1.0-0' }}% off</b> across {{ storesOnSale() }} stores.
           </p>
         }
         <div class="mt-6 flex flex-wrap gap-2" role="group" aria-label="Department">

@@ -36,7 +36,7 @@ function readSession(): string | null {
       <div #scroller class="flex-1 space-y-6 overflow-y-auto py-6" aria-live="polite">
         @if (!messages().length) {
           <div class="pt-6 text-center sm:pt-12">
-            <p class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-ink font-display text-xl text-pink">✦</p>
+            <p class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-ink to-pink-deep font-display text-xl text-white">✦</p>
             <h1 class="text-3xl font-semibold">Your shopping assistant</h1>
             <p class="mx-auto mt-2 max-w-md text-sm text-muted">
               Ask in plain words. I search every store we track, compare similar items and find the best deals.
@@ -55,11 +55,11 @@ function readSession(): string | null {
         @for (m of messages(); track $index) {
           @if (m.role === 'user') {
             <div class="flex justify-end">
-              <p class="max-w-[85%] rounded-2xl rounded-br-md bg-ink px-4 py-2.5 text-sm text-paper">{{ m.text }}</p>
+              <p class="max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-r from-blue to-ink px-4 py-2.5 text-sm text-white">{{ m.text }}</p>
             </div>
           } @else {
             <div class="flex gap-3">
-              <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink text-sm text-pink" aria-hidden="true">✦</span>
+              <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink to-pink-deep text-sm text-white" aria-hidden="true">✦</span>
               <div class="min-w-0 flex-1 space-y-3">
                 <div class="whitespace-pre-line text-sm leading-relaxed" [class.text-sale]="m.error">{{ m.text }}</div>
                 @if (m.products?.length) {
@@ -99,7 +99,7 @@ function readSession(): string | null {
         }
         @if (busy()) {
           <div class="flex gap-3" aria-label="Assistant is typing">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink text-sm text-pink">✦</span>
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ink to-pink-deep text-sm text-white">✦</span>
             <span class="flex items-center gap-1 pt-2">
               <span class="h-2 w-2 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]"></span>
               <span class="h-2 w-2 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]"></span>

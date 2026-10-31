@@ -34,7 +34,7 @@ const PAD = { top: 16, right: 12, bottom: 24, left: 12 };
         @if (hover() !== null) {
           @let pt = coords()[hover()!];
           <div
-            class="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-lg bg-ink px-2 py-1 text-xs text-paper shadow"
+            class="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-lg bg-ink px-2 py-1 text-xs text-white shadow"
             [style.left.%]="(pt.x / W) * 100"
             [style.top.%]="(pt.y / H) * 100 - 4"
           >

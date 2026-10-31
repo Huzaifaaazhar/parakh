@@ -34,7 +34,7 @@ import { ProductImage } from './product-image';
         [attr.aria-pressed]="tray.has(p.id)"
         [attr.aria-label]="(tray.has(p.id) ? 'Remove from' : 'Add to') + ' comparison'"
         class="absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur transition-colors disabled:opacity-40"
-        [class]="tray.has(p.id) ? 'border-ink bg-ink text-paper' : 'border-white/70 bg-white/80 text-ink hover:bg-white'"
+        [class]="tray.has(p.id) ? 'border-ink bg-ink text-white' : 'border-white/70 bg-white/80 text-ink hover:bg-white'"
       >
         {{ tray.has(p.id) ? '✓ Comparing' : '+ Compare' }}
       </button>

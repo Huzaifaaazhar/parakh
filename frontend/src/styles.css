@@ -7,7 +7,7 @@
   /* Deep blue · pure white · bubblegum pink. Pink is an accent: it carries deep-blue
      text (5.4:1), and pink *text* uses pink-deep (5.9:1 on white). */
   --color-ink: #0a1f5c;
-  --color-paper: #ffffff;
+  --color-paper: #f4f5fa; /* charcoal white: page background, so white cards lift off it */
   --color-card: #ffffff;
   --color-line: #e1e6f2;
   --color-muted: #5a6688;
@@ -16,6 +16,7 @@
   --color-pink-soft: #ffe4f0;
   --color-blue: #2343b8;
   --color-blue-soft: #eaf0ff;
+  --color-pink-light: #ffc6df; /* pink for text on the dark gradients (>= 4.5:1 on the blue end) */
   --color-sale: #c2185b;
   --color-drop: #15803d;
 }
@@ -26,6 +27,12 @@
   }
   body {
     @apply bg-paper text-ink font-sans;
+    /* A faint, fixed glow of the brand colours behind everything. */
+    background-image:
+      radial-gradient(55rem 35rem at 105% -5%, rgb(255 95 162 / 0.13), transparent 60%),
+      radial-gradient(50rem 40rem at -10% 35%, rgb(35 67 184 / 0.09), transparent 60%),
+      radial-gradient(45rem 30rem at 60% 110%, rgb(255 95 162 / 0.08), transparent 60%);
+    background-attachment: fixed;
   }
   h1,
   h2,
@@ -41,10 +48,10 @@
   @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-ink text-paper hover:bg-ink/85;
+  @apply btn bg-gradient-to-r from-ink to-blue text-white shadow-sm shadow-blue/20 hover:brightness-110;
 }
 @utility btn-accent {
-  @apply btn bg-pink text-ink hover:bg-pink-deep hover:text-white;
+  @apply btn bg-gradient-to-r from-pink to-[#ff8cc0] text-ink shadow-md shadow-pink/30 hover:brightness-105;
 }
 @utility btn-ghost {
   @apply btn border border-line bg-card text-ink hover:border-ink/40;
@@ -53,7 +60,7 @@
   @apply inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1 text-xs font-medium text-ink transition-colors hover:border-ink/40;
 }
 @utility chip-active {
-  @apply chip border-pink bg-pink text-ink hover:border-pink-deep;
+  @apply chip border-transparent bg-gradient-to-r from-pink to-[#ff8cc0] text-ink hover:border-pink-deep;
 }
 @utility card {
   @apply rounded-2xl border border-line bg-card;
@@ -66,4 +73,36 @@
 }
 @utility badge-sale {
   @apply rounded-full bg-sale px-2 py-0.5 text-[11px] font-semibold text-white;
+}
+
+/* Deep blue -> royal blue -> deep pink. White text stays >= 5.8:1 at every stop;
+   the gradient drifts slowly so large surfaces don't feel static. */
+@utility bg-brand {
+  background-image: linear-gradient(120deg, #0a1f5c 0%, #1a2f86 35%, #2343b8 60%, #c2185b 100%);
+  background-size: 220% 220%;
+  animation: brand-drift 18s ease-in-out infinite alternate;
+}
+@utility bg-brand-reverse {
+  background-image: linear-gradient(120deg, #c2185b 0%, #8a1f7a 35%, #2343b8 70%, #0a1f5c 100%);
+  background-size: 220% 220%;
+  animation: brand-drift 18s ease-in-out infinite alternate;
+}
+@utility text-brand-gradient {
+  background-image: linear-gradient(90deg, #2343b8, #c2185b);
+  background-clip: text;
+  color: transparent;
+}
+@keyframes brand-drift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-brand,
+  .bg-brand-reverse {
+    animation: none;
+  }
 }

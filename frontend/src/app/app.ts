@@ -16,7 +16,8 @@ import { ProductImage } from './shared/product-image';
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2"
       >Skip to content</a
     >
-    <header class="sticky top-0 z-30 border-b-2 border-pink bg-paper/95 backdrop-blur">
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur">
+      <div class="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-ink via-blue to-pink" aria-hidden="true"></div>
       <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6">
         <a routerLink="/" class="flex shrink-0 items-center gap-2" aria-label="Parakh home">
           <img src="favicon.svg" alt="" class="h-8 w-8" />
@@ -42,13 +43,13 @@ import { ProductImage } from './shared/product-image';
           @for (link of links; track link.path) {
             <a
               [routerLink]="link.path"
-              routerLinkActive="bg-ink text-paper"
+              routerLinkActive="bg-gradient-to-r from-ink to-blue text-white shadow-sm"
               [routerLinkActiveOptions]="{ exact: link.path === '/' }"
               class="hidden rounded-full px-3 py-1.5 hover:bg-ink/5 sm:inline-block"
               >{{ link.label }}</a
             >
           }
-          <a routerLink="/account" routerLinkActive="bg-ink text-paper" class="rounded-full px-3 py-1.5 hover:bg-ink/5">
+          <a routerLink="/account" routerLinkActive="bg-gradient-to-r from-ink to-blue text-white shadow-sm" class="rounded-full px-3 py-1.5 hover:bg-ink/5">
             {{ auth.isLoggedIn() ? 'My list' : 'Sign in' }}
           </a>
           <button
@@ -80,7 +81,7 @@ import { ProductImage } from './shared/product-image';
 
     @if (tray.count() > 0 && !onComparePage()) {
       <div class="fixed inset-x-0 bottom-4 z-40 px-4">
-        <div class="mx-auto flex max-w-3xl items-center gap-3 rounded-2xl border border-ink/10 bg-ink p-3 text-paper shadow-2xl">
+        <div class="bg-brand mx-auto flex max-w-3xl items-center gap-3 rounded-2xl p-3 text-white shadow-2xl shadow-ink/30">
           <div class="flex -space-x-2">
             @for (p of tray.items(); track p.id) {
               <button
@@ -95,9 +96,9 @@ import { ProductImage } from './shared/product-image';
           </div>
           <p class="min-w-0 flex-1 text-sm">
             <span class="font-semibold">{{ tray.count() }} selected</span>
-            <span class="hidden text-paper/70 sm:inline"> · from {{ tray.items()[0].price | pkr }} · add up to 4</span>
+            <span class="hidden text-white/70 sm:inline"> · from {{ tray.items()[0].price | pkr }} · add up to 4</span>
           </p>
-          <button type="button" class="text-sm text-paper/70 hover:text-paper" (click)="tray.clear()">Clear</button>
+          <button type="button" class="text-sm text-white/70 hover:text-white" (click)="tray.clear()">Clear</button>
           <a routerLink="/compare" class="btn-accent" [class.pointer-events-none]="tray.count() < 2" [class.opacity-50]="tray.count() < 2"
             >Compare side by side</a
           >
@@ -105,9 +106,9 @@ import { ProductImage } from './shared/product-image';
       </div>
     }
 
-    <footer class="mt-16 border-t border-line">
-      <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
-        <p><span class="font-display font-semibold text-ink">Parakh</span> — one place to compare prices and sales across Pakistani stores.</p>
+    <footer class="bg-brand mt-16 text-white/85">
+      <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p><span class="font-display font-semibold text-white">Parakh</span> — one place to compare prices and sales across Pakistani stores.</p>
         <p>Prices are refreshed from each store every few hours. Always confirm on the store's site before buying.</p>
       </div>
     </footer>
