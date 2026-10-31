@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChildren } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, map, of, switchMap, tap } from 'rxjs';
@@ -9,27 +9,23 @@ import { Page, PriceDrop, Product, SalesOverview } from '../core/models';
 import { LabelPipe, PkrPipe, TimeAgoPipe } from '../shared/format';
 import { ProductCard } from '../shared/product-card';
 import { CountUp, Reveal } from '../shared/motion';
+import { PageHero } from '../shared/page-hero';
 import { EmptyState, SkeletonGrid } from '../shared/states';
 
 @Component({
   selector: 'app-sales',
-  imports: [RouterLink, DecimalPipe, LabelPipe, PkrPipe, TimeAgoPipe, ProductCard, SkeletonGrid, EmptyState, Reveal, CountUp],
+  imports: [RouterLink, DecimalPipe, LabelPipe, PkrPipe, TimeAgoPipe, ProductCard, SkeletonGrid, EmptyState, Reveal, CountUp, PageHero],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let q = params();
-    <div class="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:pt-10">
-      <h1 class="t-display-lg">Every sale, in one place</h1>
-      @if (overview(); as ov) {
-        <p class="t-small mt-2">{{ storesOnSale() }} of {{ ov.stores.length }} stores have something on sale right now.</p>
-        <div appReveal class="pk-print mt-6 max-w-md"><dl class="pk-receipt">
-          <div><dt>On sale now</dt><span class="pk-leader"></span><dd class="is-sale" [appCountUp]="ov.total_on_sale"></dd></div>
-          <div><dt>Products tracked</dt><span class="pk-leader"></span><dd [appCountUp]="ov.total_products"></dd></div>
-          <div><dt>Avg. discount</dt><span class="pk-leader"></span><dd [appCountUp]="ov.average_discount" suffix="%"></dd></div>
-          <div><dt>Stores on sale</dt><span class="pk-leader"></span><dd>{{ storesOnSale() }} of {{ ov.stores.length }}</dd></div>
-        </dl></div>
-      }
-
-      <div class="pk-strip mt-6 -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Department">
+    <app-page-hero
+      variant="pink"
+      eyebrow="Sale aggregator"
+      title="Every sale, in one place"
+      [subtitle]="overview() ? storesOnSale() + ' of ' + overview()!.stores.length + ' stores have something on sale right now.' : 'Live sale status across every store we track.'"
+      [images]="heroImages()"
+    >
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Department">
         <button type="button" class="pk-chip" [attr.aria-pressed]="!q.vertical" (click)="set({ vertical: null })">Everything</button>
         @for (v of verticals; track v) {
           <button type="button" class="pk-chip" [attr.aria-pressed]="q.vertical === v" (click)="set({ vertical: v })">
@@ -40,39 +36,67 @@ import { EmptyState, SkeletonGrid } from '../shared/states';
           </button>
         }
       </div>
+    </app-page-hero>
 
+    <div class="mx-auto max-w-7xl px-4 pb-16">
       @if (overview(); as ov) {
-        <section class="mt-12 sm:mt-[72px]" aria-labelledby="stores">
-          <div class="mb-6 flex items-end justify-between gap-4">
-            <h2 id="stores" class="t-display-lg">By store</h2>
+        <div appReveal class="pk-print relative z-[3] -mt-6 max-w-md">
+          <dl class="pk-receipt">
+            <div><dt>On sale now</dt><span class="pk-leader"></span><dd class="is-sale" [appCountUp]="ov.total_on_sale"></dd></div>
+            <div><dt>Products tracked</dt><span class="pk-leader"></span><dd [appCountUp]="ov.total_products"></dd></div>
+            <div><dt>Avg. discount</dt><span class="pk-leader"></span><dd [appCountUp]="ov.average_discount" suffix="%"></dd></div>
+            <div><dt>Stores on sale</dt><span class="pk-leader"></span><dd>{{ storesOnSale() }} of {{ ov.stores.length }}</dd></div>
+          </dl>
+        </div>
+
+        <section class="mt-12 sm:mt-16" aria-labelledby="stores">
+          <div class="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <h2 id="stores" class="t-display-lg">By store</h2>
+              <p class="t-small mt-2">Tap a store to see only its deals.</p>
+            </div>
             @if (q.store) {
               <button type="button" class="pk-link" (click)="set({ store: null })">Show all stores</button>
             }
           </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             @for (s of ov.stores; track s.id; let i = $index) {
-              <button type="button" [appReveal]="i" class="pk-storetag" [class.pk-storetag--quiet]="!s.on_sale" (click)="set({ store: q.store === s.slug ? null : s.slug })" [attr.aria-pressed]="q.store === s.slug">
-                <div class="pk-storetag__name">{{ s.name }}</div>
-                @if (s.on_sale) {
-                  <div class="pk-storetag__deal">Up to {{ s.max_discount | number: '1.0-0' }}% off</div>
-                  <div class="pk-storetag__meta">{{ s.on_sale | number }} of {{ s.total_products | number }} items · avg {{ s.avg_discount | number: '1.0-0' }}% · {{ s.last_scraped_at | timeAgo }}</div>
-                } @else {
-                  <div class="pk-storetag__deal">No sale right now</div>
-                  <div class="pk-storetag__meta">Checked {{ s.last_scraped_at | timeAgo }}</div>
-                }
-                <div class="pk-storetag__meter"><span [style.width.%]="s.sale_share"></span></div>
+              <button
+                type="button"
+                [appReveal]="i"
+                class="pk-storecard !w-auto text-left"
+                [class.pk-storecard--quiet]="!s.on_sale"
+                [class.ring-2]="q.store === s.slug"
+                [class.ring-blue]="q.store === s.slug"
+                (click)="set({ store: q.store === s.slug ? null : s.slug })"
+                [attr.aria-pressed]="q.store === s.slug"
+              >
+                <span>
+                  <span class="block font-sans text-[15px] font-bold text-blue">{{ s.name }}</span>
+                  <span class="t-small block">{{ s.on_sale ? (s.on_sale | number) + ' of ' + (s.total_products | number) : 'Checked ' + (s.last_scraped_at | timeAgo) }}</span>
+                </span>
+                <span>
+                  @if (s.on_sale) {
+                    <span class="pk-storecard__pct block">−{{ s.max_discount | number: '1.0-0' }}%</span>
+                    <span class="t-small block">avg {{ s.avg_discount | number: '1.0-0' }}% off</span>
+                  } @else {
+                    <span class="pk-storecard__pct block">No sale</span>
+                  }
+                  <span class="pk-storetag__meter block"><span [style.width.%]="s.sale_share"></span></span>
+                </span>
               </button>
             }
           </div>
         </section>
       }
 
-      <section class="mt-12 sm:mt-[72px]" aria-labelledby="deals">
+      <section class="mt-12 sm:mt-16" aria-labelledby="deals">
         <h2 id="deals" class="sr-only">Deals</h2>
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div class="flex gap-2" role="tablist" aria-label="Deals or price drops">
-            <button type="button" role="tab" class="pk-chip" [attr.aria-selected]="q.tab !== 'drops'" [attr.aria-pressed]="q.tab !== 'drops'" (click)="set({ tab: null })">Top deals</button>
-            <button type="button" role="tab" class="pk-chip" [attr.aria-selected]="q.tab === 'drops'" [attr.aria-pressed]="q.tab === 'drops'" (click)="set({ tab: 'drops' })">Price drops</button>
+          <div class="pk-tabs" role="tablist" aria-label="Deals or price drops">
+            <span class="pk-tabs__pill" [style.width.px]="pill().w" [style.transform]="'translateX(' + pill().x + 'px)'" aria-hidden="true"></span>
+            <button #dealTab type="button" role="tab" [attr.aria-selected]="q.tab !== 'drops'" (click)="set({ tab: null })">Top deals</button>
+            <button #dealTab type="button" role="tab" [attr.aria-selected]="q.tab === 'drops'" (click)="set({ tab: 'drops' })">Price drops</button>
           </div>
           @if (q.tab !== 'drops') {
             <label class="flex items-center gap-2">
@@ -163,9 +187,16 @@ export class SalesPage {
 
   protected readonly deals = signal<Page<Product> | null>(null);
   protected readonly drops = signal<PriceDrop[] | null>(null);
+  private dealTabs = viewChildren<ElementRef<HTMLButtonElement>>('dealTab');
+  protected readonly pill = signal({ x: 0, w: 0 });
+  protected readonly heroImages = computed(() => (this.overview()?.top_deals ?? []).map((p) => p.image_url).filter(Boolean).slice(0, 3));
   protected readonly storesOnSale = computed(() => this.overview()?.stores.filter((s) => s.on_sale > 0).length ?? 0);
 
   constructor() {
+    effect(() => {
+      const btn = this.dealTabs()[this.params().tab === 'drops' ? 1 : 0]?.nativeElement;
+      if (btn) this.pill.set({ x: btn.offsetLeft - 4, w: btn.offsetWidth });
+    });
     this.route.queryParamMap
       .pipe(
         tap(() => {

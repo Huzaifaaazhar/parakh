@@ -1,15 +1,17 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, ParamMap, Router } from '@angular/router';
-import { Observable, catchError, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
+import { Observable, catchError, distinctUntilChanged, forkJoin, map, of, switchMap, tap } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
 import { Facets, Page, Product, ProductFilters, SearchResponse, SortOption } from '../core/models';
 import { LabelPipe, PkrPipe } from '../shared/format';
 import { ProductCard } from '../shared/product-card';
 import { Reveal } from '../shared/motion';
+import { PageHero } from '../shared/page-hero';
+import { Rail } from '../shared/rail';
 import { EmptyState, SkeletonGrid } from '../shared/states';
 
 type Result = (Page<Product> & Partial<Pick<SearchResponse, 'parsed_filters' | 'semantic'>>) | { error: true };
@@ -34,42 +36,38 @@ function filtersFrom(params: ParamMap): ProductFilters {
 
 @Component({
   selector: 'app-products',
-  imports: [FormsModule, DecimalPipe, PkrPipe, LabelPipe, ProductCard, SkeletonGrid, EmptyState, Reveal],
+  imports: [FormsModule, DecimalPipe, PkrPipe, LabelPipe, ProductCard, SkeletonGrid, EmptyState, Reveal, PageHero, Rail, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let f = filters();
-    <div class="mx-auto max-w-7xl px-4 pt-6 sm:pt-10">
-      <h1 class="t-display-lg">
-        @if (f.q) {
-          “{{ f.q }}”
-        } @else if (f.category) {
-          {{ f.category | label }}
-        } @else if (f.vertical) {
-          {{ f.vertical | label }}
-        } @else {
-          All products
-        }
-      </h1>
-      @if (result(); as r) {
-        @if (!isError(r)) {
-          <p class="t-small mt-2">
-            <span class="font-mono text-blue">{{ r.total | number }}</span> items across stores
-            @if (understood().length) {
-              <span> · showing {{ understood().join(' · ') }}</span>
-            }
-          </p>
-        }
-      }
-    </div>
+    <app-page-hero [variant]="heroVariant()" [eyebrow]="heroEyebrow()" [title]="heroTitle()" [subtitle]="heroSubtitle()" [images]="heroImages()">
+      <form (ngSubmit)="submitSearch()" class="pk-search max-w-xl" role="search">
+        <label for="browse-q" class="sr-only">Search products</label>
+        <input id="browse-q" [(ngModel)]="draftQuery" name="q" placeholder="Search kurtas, phones, perfumes" autocomplete="off" />
+        <button type="submit">Search</button>
+      </form>
+    </app-page-hero>
 
-    <div class="sticky top-14 z-20 mt-4 border-b border-line bg-paper">
-      <div class="mx-auto max-w-7xl px-4 py-3">
-        <form (ngSubmit)="submitSearch()" class="pk-search pk-search--sm" role="search">
-          <label for="browse-q" class="sr-only">Search products</label>
-          <input id="browse-q" [(ngModel)]="draftQuery" name="q" placeholder="Search kurtas, phones, perfumes" autocomplete="off" />
-          <button type="submit">Search</button>
-        </form>
-        <div class="pk-strip mt-3 -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Quick filters">
+    @if (catTiles().length) {
+      <section class="pt-5" aria-label="Categories">
+        <app-rail label="Categories">
+          @for (t of catTiles(); track t.key; let i = $index) {
+            <a class="pk-thumb" [appReveal]="i" [routerLink]="[]" [queryParams]="{ category: f.category === t.key ? null : t.key, page: null }" queryParamsHandling="merge" [attr.aria-current]="f.category === t.key ? 'true' : null">
+              <span class="pk-thumb__img" [class.ring-2]="f.category === t.key" [class.ring-bubblegum]="f.category === t.key">
+                @if (t.image) {
+                  <img [src]="t.image" alt="" loading="lazy" />
+                }
+              </span>
+              <span class="pk-thumb__label">{{ t.key | label }} <span class="font-mono text-[11px] text-charcoal-muted">{{ t.count }}</span></span>
+            </a>
+          }
+        </app-rail>
+      </section>
+    }
+
+    <div class="pk-toolbar mt-4">
+      <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+        <div class="pk-strip min-w-0 flex-1" role="group" aria-label="Quick filters">
           <button type="button" class="pk-chip lg:hidden" (click)="showFilters.set(true)" aria-haspopup="dialog">
             Filters
             @if (activeCount()) {
@@ -93,6 +91,14 @@ function filtersFrom(params: ParamMap): ProductFilters {
             }
           }
         </div>
+        <label class="hidden shrink-0 items-center gap-2 sm:flex">
+          <span class="t-label text-charcoal-muted">Sort</span>
+          <select class="pk-input w-auto" [ngModel]="f.sort" (ngModelChange)="update({ sort: $event })" name="sort">
+            @for (s of sorts; track s.value) {
+              <option [value]="s.value">{{ s.label }}</option>
+            }
+          </select>
+        </label>
       </div>
     </div>
 
@@ -101,7 +107,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
         <div class="fixed inset-0 z-40 bg-charcoal/40 lg:hidden" (click)="showFilters.set(false)" aria-hidden="true"></div>
       }
       <aside
-        class="space-y-6 lg:static lg:block lg:bg-transparent lg:p-0"
+        class="space-y-6 lg:sticky lg:top-[132px] lg:block lg:self-start lg:bg-transparent lg:p-0"
         [class.hidden]="!showFilters()"
         [class.pk-sheet]="showFilters()"
         [class.filters-sheet]="showFilters()"
@@ -161,10 +167,15 @@ function filtersFrom(params: ParamMap): ProductFilters {
       </aside>
 
       <section aria-live="polite" aria-label="Results">
-        <div class="mb-4 flex items-center justify-end">
-          <label class="flex items-center gap-2">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          @if (result(); as r0) {
+            @if (!isError(r0)) {
+              <p class="t-small"><span class="font-mono font-semibold text-blue">{{ r0.total | number }}</span> items across stores</p>
+            }
+          }
+          <label class="flex items-center gap-2 sm:hidden">
             <span class="t-label text-charcoal-muted">Sort</span>
-            <select class="pk-input w-auto" [ngModel]="f.sort" (ngModelChange)="update({ sort: $event })" name="sort">
+            <select class="pk-input w-auto" [ngModel]="f.sort" (ngModelChange)="update({ sort: $event })" name="sortm">
               @for (s of sorts; track s.value) {
                 <option [value]="s.value">{{ s.label }}</option>
               }
@@ -274,10 +285,64 @@ export class ProductsPage {
     return !!(f.vertical || f.category || f.gender || f.store || f.min_price || f.max_price || f.on_sale || f.color);
   });
 
+  protected readonly heroVariant = computed(() => {
+    const f = this.filters();
+    if (f.on_sale) return 'pink' as const;
+    if (f.vertical === 'electronics') return 'ink' as const;
+    return 'paper' as const;
+  });
+  protected readonly heroEyebrow = computed(() => {
+    const f = this.filters();
+    if (f.q) return 'Search results';
+    if (f.on_sale) return 'On sale now';
+    return f.vertical ? 'Department' : 'Browse';
+  });
+  protected readonly heroTitle = computed(() => {
+    const f = this.filters();
+    const label = (v: string) => (v === 't-shirt' ? 'T-shirts' : v.charAt(0).toUpperCase() + v.slice(1).replace(/-/g, ' '));
+    if (f.q) return `“${f.q}”`;
+    if (f.category) return label(f.category);
+    if (f.vertical) return label(f.vertical);
+    return 'All products';
+  });
+  protected readonly heroSubtitle = computed(() => {
+    const r = this.result();
+    if (!r || this.isError(r)) return 'Every store we track, matched and price-checked.';
+    const extra = this.understood().length ? ` · showing ${this.understood().join(' · ')}` : '';
+    return `${r.total.toLocaleString('en-PK')} items across stores${extra}`;
+  });
+  protected readonly heroImages = computed(() => {
+    const r = this.result();
+    return r && !this.isError(r) ? r.items.map((p) => p.image_url).filter(Boolean).slice(0, 3) : [];
+  });
+  /** Photo tiles for the categories in view (one product image each). */
+  protected readonly catTiles = signal<{ key: string; count: number; image: string | null }[]>([]);
+  private catKey = '';
+
   protected readonly activeCount = computed(() => {
     const f = this.filters();
     return [f.vertical, f.category, f.gender, f.min_price || f.max_price, f.on_sale, ...(f.store ?? [])].filter(Boolean).length;
   });
+
+  constructor() {
+    effect(() => {
+      const fac = this.facets();
+      const cats = (fac?.categories ?? []).filter((c) => c.value !== 'other').slice(0, 12);
+      const key = cats.map((c) => c.value).join(',') + '|' + (this.filters().vertical ?? '');
+      if (!cats.length || key === this.catKey) return;
+      this.catKey = key;
+      const vertical = this.filters().vertical;
+      this.catTiles.set(cats.map((c) => ({ key: c.value, count: c.count, image: null })));
+      forkJoin(
+        cats.map((c) =>
+          this.api.products({ category: c.value, vertical, sort: 'value', page_size: 1 }).pipe(
+            map((r) => r.items[0]?.image_url ?? null),
+            catchError(() => of(null)),
+          ),
+        ),
+      ).subscribe((imgs) => this.catTiles.set(cats.map((c, i) => ({ key: c.value, count: c.count, image: imgs[i] }))));
+    });
+  }
 
   submitSearch(): void {
     const q = this.draftQuery.trim();
