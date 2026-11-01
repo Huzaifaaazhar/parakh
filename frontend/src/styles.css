@@ -804,6 +804,19 @@
     padding: 8px 0;
     border-bottom: 2px solid transparent;
   }
+  .pk-navcount {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--color-bubblegum);
+    color: var(--color-blue-ink);
+    font: 700 11px/18px var(--font-mono);
+    text-align: center;
+    vertical-align: 1px;
+  }
   .pk-navlink:hover {
     color: var(--color-blue);
   }
@@ -1278,6 +1291,21 @@ body {
 .pk-tagnav a span {
   position: relative;
   z-index: 1;
+}
+.pk-tagnav a .pk-tagnav__count {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  margin-left: 6px;
+  z-index: 2;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-blue);
+  color: #fff;
+  font: 700 10px/17px var(--font-mono);
+  text-align: center;
 }
 .pk-tagnav a::before {
   /* the active tab gets a bubblegum sticker slapped behind its icon */

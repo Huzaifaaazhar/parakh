@@ -31,7 +31,7 @@ import { ProductImage } from './shared/product-image';
         </form>
         <nav class="ml-auto hidden items-center gap-6 sm:flex lg:ml-0" aria-label="Main">
           @for (link of links; track link.path) {
-            <a [routerLink]="link.path" routerLinkActive #rla="routerLinkActive" [routerLinkActiveOptions]="{ exact: link.path === '/' }" [attr.aria-current]="rla.isActive ? 'page' : null" class="pk-navlink">{{ link.label }}</a>
+            <a [routerLink]="link.path" routerLinkActive #rla="routerLinkActive" [routerLinkActiveOptions]="{ exact: link.path === '/' }" [attr.aria-current]="rla.isActive ? 'page' : null" class="pk-navlink">{{ link.label }}@if (link.path === '/compare' && tray.count()) {<span class="pk-navcount" [attr.aria-label]="tray.count() + ' picked'">{{ tray.count() }}</span>}</a>
           }
           <a routerLink="/account" routerLinkActive #rlaAcc="routerLinkActive" [attr.aria-current]="rlaAcc.isActive ? 'page' : null" class="pk-navlink">
             {{ auth.isLoggedIn() ? 'My list' : 'Sign in' }}
@@ -82,6 +82,7 @@ import { ProductImage } from './shared/product-image';
         </div>
         <nav class="flex flex-col gap-2 text-[15px]" aria-label="Footer">
           <a routerLink="/products" class="hover:text-bubblegum">Browse</a>
+          <a routerLink="/compare" class="hover:text-bubblegum">Compare</a>
           <a routerLink="/sales" class="hover:text-bubblegum">Sales</a>
           <a routerLink="/assistant" class="hover:text-bubblegum">Assistant</a>
           <a routerLink="/account" class="hover:text-bubblegum">My list</a>
@@ -96,6 +97,7 @@ import { ProductImage } from './shared/product-image';
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
             <path [attr.d]="tab.icon" />
           </svg>
+          @if (tab.path === '/compare' && tray.count()) {<span class="pk-tagnav__count">{{ tray.count() }}</span>}
           <span>{{ tab.path === '/account' && !auth.isLoggedIn() ? 'Sign in' : tab.label }}</span>
         </a>
       }
@@ -111,6 +113,7 @@ export class App {
   protected readonly links = [
     { path: '/', label: 'Home' },
     { path: '/products', label: 'Browse' },
+    { path: '/compare', label: 'Compare' },
     { path: '/sales', label: 'Sales' },
     { path: '/assistant', label: 'Assistant' },
   ];
@@ -118,6 +121,7 @@ export class App {
   protected readonly tabs = [
     { path: '/', label: 'Home', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
     { path: '/products', label: 'Browse', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+    { path: '/compare', label: 'Compare', icon: 'M4 5h6v14H4zM14 5h6v14h-6zM12 3v18' },
     { path: '/sales', label: 'Sales', icon: 'M3 12V4h8l10 10-8 8L3 12zM7.5 7.5h.01' },
     { path: '/account', label: 'My list', icon: 'M6 3h12v18l-6-4-6 4z' },
   ];
