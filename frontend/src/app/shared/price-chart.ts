@@ -19,12 +19,12 @@ const PAD = { top: 16, right: 12, bottom: 24, left: 12 };
     } @else {
       <div class="relative">
         <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="h-40 w-full" role="img" [attr.aria-label]="summary()" (mouseleave)="hover.set(null)">
-          <line [attr.x1]="PAD.left" [attr.x2]="W - PAD.right" [attr.y1]="yLow()" [attr.y2]="yLow()" class="stroke-pink-ink" stroke-dasharray="3 4" />
-          <path [attr.d]="area()" class="fill-blue-tint" />
-          <path [attr.d]="line()" class="fill-none stroke-blue" stroke-width="2" stroke-linejoin="round" />
+          <line [attr.x1]="PAD.left" [attr.x2]="W - PAD.right" [attr.y1]="yLow()" [attr.y2]="yLow()" class="stroke-amber-ink" stroke-dasharray="3 4" />
+          <path [attr.d]="area()" class="fill-sage-tint" />
+          <path [attr.d]="line()" class="fill-none stroke-sage" stroke-width="2" stroke-linejoin="round" />
           @for (pt of coords(); track $index) {
             <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="10" fill="transparent" (mouseenter)="hover.set($index)" (focus)="hover.set($index)" tabindex="0" />
-            <circle [attr.cx]="pt.x" [attr.cy]="pt.y" [attr.r]="hover() === $index ? 5 : 3" class="fill-paper-raised stroke-blue" stroke-width="2" />
+            <circle [attr.cx]="pt.x" [attr.cy]="pt.y" [attr.r]="hover() === $index ? 5 : 3" class="fill-paper-raised stroke-sage" stroke-width="2" />
           }
           <text [attr.x]="PAD.left" [attr.y]="H - 6" class="fill-charcoal-muted font-mono text-[11px]">{{ points()[0].recorded_at | date: 'd MMM' }}</text>
           <text [attr.x]="W - PAD.right" [attr.y]="H - 6" text-anchor="end" class="fill-charcoal-muted font-mono text-[11px]">
@@ -34,7 +34,7 @@ const PAD = { top: 16, right: 12, bottom: 24, left: 12 };
         @if (hover() !== null) {
           @let pt = coords()[hover()!];
           <div
-            class="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-tag bg-blue px-2 py-1 font-mono text-xs text-on-blue"
+            class="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-tag bg-sage px-2 py-1 font-mono text-xs text-on-sage"
             [style.left.%]="(pt.x / W) * 100"
             [style.top.%]="(pt.y / H) * 100 - 4"
           >

@@ -2,7 +2,7 @@
 
 /*
  * Parakh design system (https://claude.ai/artifact/LStUgDHVGy7y25JdGZ8bnK).
- * Deep blue for trust and structure, bubblegum for the deal, charcoal white as the paper.
+ * Deep sage for trust and structure, amber for the deal, charcoal white as the paper.
  * Flat surfaces only: no gradients, blurs or soft card shadows.
  */
 
@@ -12,19 +12,25 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --font-urdu: 'Noto Nastaliq Urdu', serif;
 
-  --color-paper: #f2f1ee; /* charcoal white: page ground */
-  --color-paper-raised: #fbfaf8; /* cards, inputs, tray, receipts */
-  --color-line: #d6d3cc; /* hairlines */
-  --color-line-strong: #8e8b84; /* input/checkbox borders, never text */
-  --color-charcoal: #25252b; /* body copy, 13.5:1 on paper */
-  --color-charcoal-muted: #5b5a61; /* meta text, 6.0:1 on paper */
-  --color-blue: #142a6e; /* headlines, prices, hero, primary buttons, 11.7:1 */
-  --color-blue-ink: #0b1a47; /* text on bubblegum, stamp shadow */
-  --color-blue-tint: #dfe4f4; /* selected/hovered rows */
-  --color-on-blue: #f2f1ee;
-  --color-bubblegum: #ff7ab8; /* FILLS ONLY: stickers, hero CTA, circle, compare count */
-  --color-bubblegum-soft: #ffe0ee; /* best-price row tint */
-  --color-pink-ink: #b0185c; /* pink as text: sale prices, discounts, 5.9:1 */
+  /* Concrete grey: the ground everything sits on */
+  --color-paper: #e9e7e1; /* poured-concrete white: page ground */
+  --color-paper-raised: #f6f5f1; /* cards, inputs, tray, receipts */
+  --color-concrete: #c9c5bb; /* concrete slabs: bands, image wells */
+  --color-concrete-dark: #8f8b81; /* concrete shadow, dividers on slabs */
+  --color-line: #d1cdc3; /* hairlines */
+  --color-line-strong: #8b877d; /* input/checkbox borders, never text */
+  --color-charcoal: #272723; /* body copy, 13:1 on paper */
+  --color-charcoal-muted: #5d5b55; /* meta text, 5.6:1 on paper */
+  /* Sage green: headlines, prices, hero, primary buttons */
+  --color-sage: #3a4433; /* 8.6:1 on paper */
+  --color-sage-ink: #222a1e; /* deepest sage: stamp shadow, ink hero */
+  --color-sage-tint: #dfe3d5; /* selected/hovered rows */
+  --color-on-sage: #e9e7e1;
+  /* Burnt amber: the accent */
+  --color-amber: #b85a22; /* FILLS: stickers, hero CTA, circled price, counts */
+  --color-amber-soft: #f3e0d0; /* best-price row tint */
+  --color-amber-ink: #94421a; /* amber as text: offers, discounts, 6:1 on paper */
+  --color-on-amber: #fffaf3; /* text/icons on burnt-amber fills, 4.9:1 */
 
   --radius-tag: 3px;
   --radius-pill: 999px;
@@ -35,8 +41,8 @@
 }
 
 :root {
-  --shadow-stamp: 2px 2px 0 var(--color-blue-ink);
-  --shadow-tray: 0 -1px 0 var(--color-line), 0 -8px 24px rgb(37 37 43 / 0.08);
+  --shadow-stamp: 2px 2px 0 var(--color-sage-ink);
+  --shadow-tray: 0 -1px 0 var(--color-line), 0 -8px 24px rgb(39 39 35 / 0.08);
   --dur-tap: 120ms;
   --dur-quick: 200ms;
   --dur-move: 320ms;
@@ -57,17 +63,17 @@
   h1,
   h2,
   h3 {
-    color: var(--color-blue);
+    color: var(--color-sage);
   }
   :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-    outline: 2px solid var(--color-blue);
+    outline: 2px solid var(--color-sage);
     outline-offset: 2px;
   }
-  .pk-on-blue :where(a, button, input, select):focus-visible {
-    outline-color: var(--color-bubblegum);
+  .pk-on-sage :where(a, button, input, select):focus-visible {
+    outline-color: var(--color-amber);
   }
   ::selection {
-    background: var(--color-bubblegum-soft);
+    background: var(--color-amber-soft);
   }
 }
 
@@ -82,11 +88,11 @@
     font: 800 clamp(28px, 5vw, 36px) / 0.95 var(--font-display);
     font-stretch: 125%;
     letter-spacing: -0.015em;
-    color: var(--color-blue);
+    color: var(--color-sage);
   }
   .t-heading {
     font: 700 22px / 1.1 var(--font-display);
-    color: var(--color-blue);
+    color: var(--color-sage);
   }
   .t-body-lg {
     font: 400 18px / 1.5 var(--font-sans);
@@ -113,7 +119,7 @@
   }
   .t-urgency {
     font: italic 700 15px / 1.2 var(--font-sans);
-    color: var(--color-pink-ink);
+    color: var(--color-amber-ink);
   }
   .t-tag {
     font: 800 13px / 1 var(--font-display);
@@ -146,23 +152,23 @@
     font-size: 15px;
   }
   .pk-btn--primary {
-    background: var(--color-blue);
-    color: var(--color-on-blue);
+    background: var(--color-sage);
+    color: var(--color-on-sage);
     box-shadow: var(--shadow-stamp);
   }
   .pk-btn--deal {
-    background: var(--color-bubblegum);
-    color: var(--color-blue-ink);
+    background: var(--color-amber);
+    color: var(--color-on-amber);
     box-shadow: var(--shadow-stamp);
   }
   .pk-btn--quiet {
     background: transparent;
-    color: var(--color-blue);
-    box-shadow: inset 0 0 0 1.5px var(--color-blue);
+    color: var(--color-sage);
+    box-shadow: inset 0 0 0 1.5px var(--color-sage);
   }
-  .pk-on-blue .pk-btn--quiet {
-    color: var(--color-on-blue);
-    box-shadow: inset 0 0 0 1.5px var(--color-on-blue);
+  .pk-on-sage .pk-btn--quiet {
+    color: var(--color-on-sage);
+    box-shadow: inset 0 0 0 1.5px var(--color-on-sage);
   }
   .pk-btn:not(:disabled):active {
     transform: translate(2px, 2px);
@@ -170,8 +176,8 @@
   }
   .pk-btn--quiet:not(:disabled):active {
     transform: translateY(1px);
-    box-shadow: inset 0 0 0 1.5px var(--color-blue);
-    background: var(--color-blue-tint);
+    box-shadow: inset 0 0 0 1.5px var(--color-sage);
+    background: var(--color-sage-tint);
   }
   .pk-btn:disabled,
   .pk-btn[aria-disabled='true'] {
@@ -203,17 +209,17 @@
       border-color var(--dur-quick) var(--ease-snap);
   }
   .pk-chip:hover {
-    border-color: var(--color-blue);
+    border-color: var(--color-sage);
   }
   .pk-chip[aria-pressed='true'] {
-    background: var(--color-blue);
-    border-color: var(--color-blue);
-    color: var(--color-on-blue);
+    background: var(--color-sage);
+    border-color: var(--color-sage);
+    color: var(--color-on-sage);
   }
-  .pk-on-blue .pk-chip {
+  .pk-on-sage .pk-chip {
     background: transparent;
-    border-color: var(--color-on-blue);
-    color: var(--color-on-blue);
+    border-color: var(--color-on-sage);
+    color: var(--color-on-sage);
   }
   .pk-chip__count {
     font: 500 12px / 1 var(--font-mono);
@@ -234,7 +240,7 @@
   }
   .pk-input:focus {
     outline: none;
-    box-shadow: inset 0 0 0 2px var(--color-blue);
+    box-shadow: inset 0 0 0 2px var(--color-sage);
   }
   .pk-input::placeholder {
     color: var(--color-charcoal-muted);
@@ -252,7 +258,7 @@
     height: 44px;
   }
   .pk-search:focus-within {
-    box-shadow: inset 0 0 0 2px var(--color-blue);
+    box-shadow: inset 0 0 0 2px var(--color-sage);
   }
   .pk-search input {
     flex: 1;
@@ -270,20 +276,20 @@
   .pk-search button {
     border: 0;
     padding: 0 18px;
-    background: var(--color-blue);
-    color: var(--color-on-blue);
+    background: var(--color-sage);
+    color: var(--color-on-sage);
     font: 700 15px / 1 var(--font-sans);
     cursor: pointer;
   }
-  .pk-on-blue .pk-search {
+  .pk-on-sage .pk-search {
     box-shadow: none;
   }
-  .pk-on-blue .pk-search:focus-within {
-    box-shadow: inset 0 0 0 2px var(--color-bubblegum);
+  .pk-on-sage .pk-search:focus-within {
+    box-shadow: inset 0 0 0 2px var(--color-amber);
   }
-  .pk-on-blue .pk-search button {
-    background: var(--color-bubblegum);
-    color: var(--color-blue-ink);
+  .pk-on-sage .pk-search button {
+    background: var(--color-amber);
+    color: var(--color-on-amber);
   }
 
   /* ---------- Sticker ---------- */
@@ -293,8 +299,8 @@
     min-width: 52px;
     height: 28px;
     padding: 0 8px;
-    background: var(--color-bubblegum);
-    color: var(--color-blue-ink);
+    background: var(--color-amber);
+    color: var(--color-on-amber);
     border-radius: var(--radius-tag);
     box-shadow: var(--shadow-stamp);
     font: 800 13px / 1 var(--font-display);
@@ -305,13 +311,13 @@
     animation: pk-slap var(--dur-quick) var(--ease-slap) both;
   }
   .pk-sticker--drop {
-    background: var(--color-blue);
-    color: var(--color-on-blue);
-    box-shadow: 2px 2px 0 var(--color-bubblegum);
+    background: var(--color-sage);
+    color: var(--color-on-sage);
+    box-shadow: 2px 2px 0 var(--color-amber);
   }
   .pk-sticker--muted {
     background: var(--color-charcoal);
-    color: var(--color-on-blue);
+    color: var(--color-on-sage);
     box-shadow: none;
     transform: none;
     animation: none;
@@ -327,11 +333,11 @@
   .pk-price__now {
     font: 600 19px / 1.1 var(--font-mono);
     letter-spacing: -0.01em;
-    color: var(--color-blue);
+    color: var(--color-sage);
     font-variant-numeric: tabular-nums;
   }
   .pk-price__now--sale {
-    color: var(--color-pink-ink);
+    color: var(--color-amber-ink);
   }
   .pk-price__was {
     position: relative;
@@ -356,7 +362,7 @@
     color: var(--color-charcoal-muted);
   }
   .pk-price__note b {
-    color: var(--color-blue);
+    color: var(--color-sage);
     font-weight: 700;
   }
 
@@ -376,7 +382,7 @@
   }
   .pk-circled path {
     fill: none;
-    stroke: var(--color-bubblegum);
+    stroke: var(--color-amber);
     stroke-width: 3;
     stroke-linecap: round;
     stroke-dasharray: 400;
@@ -399,7 +405,7 @@
   }
   .pk-card:hover,
   .pk-card:focus-within {
-    border-color: var(--color-blue);
+    border-color: var(--color-sage);
   }
   .pk-card:active {
     transform: translateY(1px);
@@ -435,12 +441,12 @@
     border: 0;
     border-radius: var(--radius-tag);
     background: var(--color-paper-raised);
-    color: var(--color-blue);
+    color: var(--color-sage);
     cursor: pointer;
   }
   .pk-card__save[aria-pressed='true'] {
-    background: var(--color-blue);
-    color: var(--color-on-blue);
+    background: var(--color-sage);
+    color: var(--color-on-sage);
   }
   .pk-card__body {
     display: flex;
@@ -450,8 +456,21 @@
     padding: 12px;
   }
   .pk-card__store {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
     font: 700 12px / 1 var(--font-sans);
     color: var(--color-charcoal-muted);
+  }
+  .pk-card__rating {
+    font: 600 11px / 1 var(--font-mono);
+    color: var(--color-amber-ink);
+  }
+  .pk-card__portion {
+    margin: -2px 0 0;
+    font: 500 12px / 1.3 var(--font-sans);
+    color: var(--color-sage);
   }
   .pk-card__title {
     margin: 0;
@@ -483,21 +502,21 @@
     min-height: 36px;
     border-top: 1px dashed var(--color-line);
     font: 700 13px / 1 var(--font-sans);
-    color: var(--color-blue);
+    color: var(--color-sage);
     cursor: pointer;
   }
   .pk-card__compare input {
     width: 18px;
     height: 18px;
-    accent-color: var(--color-blue);
+    accent-color: var(--color-sage);
   }
   .pk-ph {
     display: grid;
     width: 100%;
     height: 100%;
     place-items: center;
-    background: var(--color-blue-tint);
-    color: var(--color-blue);
+    background: var(--color-sage-tint);
+    color: var(--color-sage);
     font: 800 44px / 1 var(--font-display);
     font-stretch: 75%;
   }
@@ -519,10 +538,10 @@
   }
   .pk-storetag:hover,
   .pk-storetag[aria-pressed='true'] {
-    border-color: var(--color-blue);
+    border-color: var(--color-sage);
   }
   .pk-storetag[aria-pressed='true'] {
-    box-shadow: inset 0 0 0 1px var(--color-blue);
+    box-shadow: inset 0 0 0 1px var(--color-sage);
   }
   .pk-storetag::before {
     content: '';
@@ -544,7 +563,7 @@
     margin-top: 4px;
     font: 800 20px / 1 var(--font-display);
     font-stretch: 75%;
-    color: var(--color-pink-ink);
+    color: var(--color-amber-ink);
   }
   .pk-storetag__meta {
     margin-top: 2px;
@@ -561,7 +580,7 @@
   .pk-storetag__meter span {
     display: block;
     height: 100%;
-    background: var(--color-blue);
+    background: var(--color-sage);
     transform-origin: left;
     animation: pk-strike var(--dur-move) var(--ease-snap) both 150ms;
   }
@@ -609,10 +628,10 @@
   .pk-receipt dd {
     margin: 0;
     font-weight: 600;
-    color: var(--color-blue);
+    color: var(--color-sage);
   }
   .pk-receipt dd.is-sale {
-    color: var(--color-pink-ink);
+    color: var(--color-amber-ink);
   }
 
   /* ---------- Price drop ledger ---------- */
@@ -620,7 +639,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    border-top: 2px solid var(--color-blue);
+    border-top: 2px solid var(--color-sage);
   }
   .pk-drop {
     display: grid;
@@ -634,12 +653,12 @@
   }
   .pk-drop:hover,
   .pk-drop:focus-visible {
-    background: var(--color-blue-tint);
+    background: var(--color-sage-tint);
   }
   .pk-drop__pct {
     font: 800 22px / 1 var(--font-display);
     font-stretch: 75%;
-    color: var(--color-pink-ink);
+    color: var(--color-amber-ink);
     font-variant-numeric: tabular-nums;
     padding-left: 4px;
   }
@@ -674,7 +693,7 @@
     font: 500 14px / 1.4 var(--font-mono);
   }
   .pk-storelist li.is-cheapest {
-    background: var(--color-bubblegum-soft);
+    background: var(--color-amber-soft);
   }
   .pk-storelist .pk-leader {
     flex: 1;
@@ -703,7 +722,7 @@
     border-radius: var(--radius-tag);
     border: 2px solid var(--color-paper-raised);
     margin-left: -10px;
-    background: var(--color-blue-tint);
+    background: var(--color-sage-tint);
     padding: 0;
     cursor: pointer;
     animation: pk-slap var(--dur-quick) var(--ease-slap) both;
@@ -718,8 +737,8 @@
     height: 24px;
     padding: 0 6px;
     border-radius: var(--radius-pill);
-    background: var(--color-bubblegum);
-    color: var(--color-blue-ink);
+    background: var(--color-amber);
+    color: var(--color-on-amber);
     font: 800 13px / 1 var(--font-sans);
   }
 
@@ -743,7 +762,7 @@
   .pk-dept__name {
     font: 800 26px / 0.95 var(--font-display);
     font-stretch: 112%;
-    color: var(--color-blue);
+    color: var(--color-sage);
     letter-spacing: -0.01em;
   }
   .pk-dept__meta {
@@ -753,29 +772,29 @@
   }
   .pk-dept__count {
     font: 500 12px / 1 var(--font-mono);
-    color: var(--color-blue);
+    color: var(--color-sage);
   }
   .pk-dept:hover,
   .pk-dept:focus-visible {
-    background: var(--color-blue);
+    background: var(--color-sage);
   }
   .pk-dept:hover :is(.pk-dept__name, .pk-dept__count, .pk-dept__meta),
   .pk-dept:focus-visible :is(.pk-dept__name, .pk-dept__count, .pk-dept__meta) {
-    color: var(--color-on-blue);
+    color: var(--color-on-sage);
   }
 
   /* ---------- Hero ---------- */
   .pk-hero {
-    background: var(--color-blue);
-    color: var(--color-on-blue);
+    background: var(--color-sage);
+    color: var(--color-on-sage);
   }
   .pk-hero h1 {
-    color: var(--color-on-blue);
+    color: var(--color-on-sage);
   }
   .pk-hero__mark {
     display: inline-block;
-    background: var(--color-bubblegum);
-    color: var(--color-blue-ink);
+    background: var(--color-amber);
+    color: var(--color-on-amber);
     padding: 0 0.12em;
     transform: rotate(-1.5deg);
   }
@@ -790,12 +809,12 @@
   .pk-wordmark__latin {
     font: 800 22px / 1 var(--font-display);
     font-stretch: 125%;
-    color: var(--color-blue);
+    color: var(--color-sage);
     letter-spacing: -0.02em;
   }
   .pk-wordmark__urdu {
     font: 600 18px / 1 var(--font-urdu);
-    color: var(--color-pink-ink);
+    color: var(--color-amber-ink);
   }
   .pk-navlink {
     font: 700 14px / 1 var(--font-sans);
@@ -811,18 +830,18 @@
     margin-left: 5px;
     padding: 0 5px;
     border-radius: 999px;
-    background: var(--color-bubblegum);
-    color: var(--color-blue-ink);
+    background: var(--color-amber);
+    color: var(--color-on-amber);
     font: 700 11px/18px var(--font-mono);
     text-align: center;
     vertical-align: 1px;
   }
   .pk-navlink:hover {
-    color: var(--color-blue);
+    color: var(--color-sage);
   }
   .pk-navlink[aria-current='page'] {
-    color: var(--color-blue);
-    border-bottom-color: var(--color-bubblegum);
+    color: var(--color-sage);
+    border-bottom-color: var(--color-amber);
   }
   .pk-tabbar a {
     display: flex;
@@ -837,14 +856,14 @@
     border-top: 2px solid transparent;
   }
   .pk-tabbar a[aria-current='page'] {
-    color: var(--color-blue);
-    border-top-color: var(--color-bubblegum);
+    color: var(--color-sage);
+    border-top-color: var(--color-amber);
   }
 
   /* ---------- Plain text link ---------- */
   .pk-link {
     font: 700 14px / 1.2 var(--font-sans);
-    color: var(--color-blue);
+    color: var(--color-sage);
     text-decoration: none;
     text-underline-offset: 3px;
   }
@@ -950,7 +969,7 @@
   --spring-tap: linear(0, 0.045, 0.154, 0.295, 0.443, 0.584, 0.708, 0.812, 0.893, 0.954, 0.996, 1.024, 1.039, 1.045, 1.046, 1.042, 1.036, 1.029, 1.023, 1.016, 1.011, 1.007, 1.003, 1.001, 1);
   --spring-soft: linear(0, 0.058, 0.189, 0.348, 0.505, 0.644, 0.759, 0.849, 0.915, 0.96, 0.99, 1.007, 1.016, 1.02, 1.019, 1.017, 1.014, 1.011, 1.008, 1.006, 1.004, 1.002, 1.001, 1, 1);
   /* Film grain: one 180px feTurbulence tile, rasterised once, composited as its own layer. */
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.06 0 0 0 0 0.16 0 0 0 1.35 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 1.35 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Printed-ink grain (≈5%) baked into the paper itself rather than a full-screen overlay layer,
@@ -958,20 +977,20 @@
 body {
   background-color: var(--color-paper);
   background-image:
-    linear-gradient(rgb(242 241 238 / 0.95), rgb(242 241 238 / 0.95)),
+    linear-gradient(rgb(233 231 225 / 0.95), rgb(233 231 225 / 0.95)),
     var(--grain);
   background-size: auto, 180px 180px;
 }
 .pk-sheet,
 .pk-slip--raised {
   background-image:
-    linear-gradient(rgb(242 241 238 / 0.95), rgb(242 241 238 / 0.95)),
+    linear-gradient(rgb(233 231 225 / 0.95), rgb(233 231 225 / 0.95)),
     var(--grain);
   background-size: auto, 180px 180px;
 }
 .pk-slip--raised {
   background-image:
-    linear-gradient(rgb(251 250 248 / 0.95), rgb(251 250 248 / 0.95)),
+    linear-gradient(rgb(246 245 241 / 0.95), rgb(246 245 241 / 0.95)),
     var(--grain);
 }
 
@@ -1001,8 +1020,8 @@ body {
   z-index: 0;
   overflow: hidden;
   isolation: isolate;
-  background: var(--color-blue);
-  color: var(--color-on-blue);
+  background: var(--color-sage);
+  color: var(--color-on-sage);
   contain: paint;
 }
 .pk-ink {
@@ -1012,19 +1031,19 @@ body {
   pointer-events: none;
   will-change: transform;
 }
-/* Deep fold of blue-ink: gives the blue a printed, uneven density. */
+/* Deep fold of sage-ink: gives the sage a printed, uneven density. */
 .pk-ink--fold {
-  background: radial-gradient(55% 45% at 22% 18%, rgb(11 26 71 / 0.85), rgb(11 26 71 / 0) 70%);
+  background: radial-gradient(55% 45% at 22% 18%, rgb(34 42 30 / 0.85), rgb(34 42 30 / 0) 70%);
   transform: translate3d(calc(var(--mx) * -14px), calc(var(--hp) * -60px + var(--my) * -10px), 0);
 }
-/* Paper seam: blue never meets pink directly (that mix turns purple). It thins into charcoal white
-   first, then the pink glow sits inside the paper. */
+/* Paper seam: sage never meets amber directly (that mix turns purple). It thins into charcoal white
+   first, then the amber glow sits inside the paper. */
 .pk-ink--seam {
-  background: radial-gradient(62% 54% at 84% 92%, #f2f1ee 0%, #f2f1ee 44%, rgb(242 241 238 / 0.55) 60%, rgb(242 241 238 / 0.18) 72%, rgb(242 241 238 / 0) 84%);
+  background: radial-gradient(62% 54% at 84% 92%, #e9e7e1 0%, #e9e7e1 44%, rgb(233 231 225 / 0.55) 60%, rgb(233 231 225 / 0.18) 72%, rgb(233 231 225 / 0) 84%);
   transform: translate3d(calc(var(--mx) * 18px - var(--hp) * 120px), calc(var(--my) * 12px - var(--hp) * 160px), 0) scale(calc(1 + var(--hp) * 0.35));
 }
 .pk-ink--glow {
-  background: radial-gradient(27% 25% at 84% 92%, #ff7ab8 0%, #ff7ab8 30%, rgb(255 122 184 / 0.6) 62%, rgb(255 122 184 / 0) 100%);
+  background: radial-gradient(27% 25% at 84% 92%, #b85a22 0%, #b85a22 30%, rgb(184 90 34 / 0.6) 62%, rgb(184 90 34 / 0) 100%);
   transform: translate3d(calc(var(--mx) * 26px - var(--hp) * 120px), calc(var(--my) * 18px - var(--hp) * 170px), 0) scale(calc(1 + var(--hp) * 0.45));
 }
 /* Heavier grain on the hero so the colour reads as ink on paper. */
@@ -1048,7 +1067,7 @@ body {
   pointer-events: none;
 }
 .pk-inkhero h1 {
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
   /* Weight and width tighten as you scroll, like type being set tighter for a smaller tag. */
   font-variation-settings:
     'wdth' calc(125 - var(--hp) * 45),
@@ -1087,7 +1106,7 @@ body {
 .pk-slip--raised {
   background: var(--color-paper-raised);
   border-top: 1px dashed var(--color-line-strong);
-  box-shadow: 0 -10px 24px -18px rgb(20 42 110 / 0.35);
+  box-shadow: 0 -10px 24px -18px rgb(58 68 51 / 0.35);
 }
 
 /* ---------- Reveal: cards rise in sequence ---------- */
@@ -1210,17 +1229,17 @@ body {
 .pk-mtag__name {
   font: 800 15px/1 var(--font-display);
   font-stretch: 100%;
-  color: var(--color-blue);
+  color: var(--color-sage);
 }
 .pk-mtag__deal {
   font: 800 15px/1 var(--font-display);
   font-stretch: 75%;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-pink-ink);
+  color: var(--color-amber-ink);
 }
 .pk-mtag--sale {
-  background: var(--color-bubblegum-soft);
+  background: var(--color-amber-soft);
 }
 
 /* ---------- Header over the ink hero ---------- */
@@ -1232,13 +1251,13 @@ body {
   border-color: transparent;
 }
 .pk-header.is-over-ink .pk-wordmark__latin {
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
 }
 .pk-header.is-over-ink .pk-wordmark__urdu {
-  color: var(--color-bubblegum);
+  color: var(--color-amber);
 }
 .pk-header.is-over-ink :is(.pk-navlink, .pk-hdr-icon) {
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
 }
 
 /* ---------- Floating price-tag nav (phones) ---------- */
@@ -1252,7 +1271,7 @@ body {
   height: 62px;
   padding-left: 22px;
   /* blurs only what is directly behind the tag */
-  background: rgb(242 241 238 / 0.78);
+  background: rgb(233 231 225 / 0.78);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   clip-path: polygon(18px 0, 100% 0, 100% 100%, 18px 100%, 0 50%);
@@ -1269,7 +1288,7 @@ body {
   height: 9px;
   margin-top: -4.5px;
   border-radius: 999px;
-  background: var(--color-blue);
+  background: var(--color-sage);
   opacity: 0.85;
 }
 .pk-tagnav a {
@@ -1302,13 +1321,13 @@ body {
   height: 17px;
   padding: 0 4px;
   border-radius: 999px;
-  background: var(--color-blue);
+  background: var(--color-sage);
   color: #fff;
   font: 700 10px/17px var(--font-mono);
   text-align: center;
 }
 .pk-tagnav a::before {
-  /* the active tab gets a bubblegum sticker slapped behind its icon */
+  /* the active tab gets a amber sticker slapped behind its icon */
   content: '';
   position: absolute;
   top: 7px;
@@ -1317,8 +1336,8 @@ body {
   height: 26px;
   margin-left: -19px;
   border-radius: 3px;
-  background: var(--color-bubblegum);
-  box-shadow: 2px 2px 0 var(--color-blue-ink);
+  background: var(--color-amber);
+  box-shadow: 2px 2px 0 var(--color-sage-ink);
   opacity: 0;
   transform: rotate(-14deg) scale(0.4);
   transition:
@@ -1326,14 +1345,14 @@ body {
     transform 520ms var(--spring-slap);
 }
 .pk-tagnav a[aria-current='page'] {
-  color: var(--color-blue);
+  color: var(--color-sage);
 }
 .pk-tagnav a[aria-current='page']::before {
   opacity: 1;
   transform: rotate(-5deg) scale(1);
 }
 .pk-tagnav a[aria-current='page'] svg {
-  color: var(--color-blue-ink);
+  color: var(--color-sage-ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1357,18 +1376,18 @@ body {
 }
 
 /* Hero controls sit on solid paper/ink so they stay readable wherever the ink thins out. */
-.pk-on-blue .pk-chip.pk-chip--solid {
+.pk-on-sage .pk-chip.pk-chip--solid {
   background: var(--color-paper-raised);
   border-color: var(--color-paper-raised);
-  color: var(--color-blue);
+  color: var(--color-sage);
 }
-.pk-on-blue .pk-chip.pk-chip--solid:hover {
-  border-color: var(--color-bubblegum);
+.pk-on-sage .pk-chip.pk-chip--solid:hover {
+  border-color: var(--color-amber);
 }
 .pk-inkhero .pk-btn--quiet {
-  background: var(--color-blue-ink);
-  color: var(--color-on-blue);
-  box-shadow: inset 0 0 0 1.5px var(--color-on-blue);
+  background: var(--color-sage-ink);
+  color: var(--color-on-sage);
+  box-shadow: inset 0 0 0 1.5px var(--color-on-sage);
 }
 /* Ink has a little inertia, like light moving across printed paper. */
 .pk-ink {
@@ -1383,19 +1402,19 @@ body {
 
 /* ============================================================================================
  * Image-led patterns (rails, slider, photo cards, masonry) with gradient surfaces.
- * Gradients only ever run blue ↔ charcoal white ↔ pink, never blue straight into pink.
+ * Gradients only ever run sage ↔ charcoal white ↔ amber, never sage straight into amber.
  * ========================================================================================== */
 
 /* Gradient buttons */
 .pk-btn--primary {
-  background: linear-gradient(180deg, #213d94 0%, #142a6e 100%);
+  background: linear-gradient(180deg, #536048 0%, #3a4433 100%);
 }
 .pk-btn--deal {
-  background: linear-gradient(180deg, #ffa3cd 0%, #ff7ab8 100%);
+  background: linear-gradient(180deg, #d98550 0%, #b85a22 100%);
 }
 .pk-btn--light {
-  background: linear-gradient(180deg, #fbfaf8 0%, #f2f1ee 100%);
-  color: var(--color-blue);
+  background: linear-gradient(180deg, #f6f5f1 0%, #e9e7e1 100%);
+  color: var(--color-sage);
   box-shadow: var(--shadow-stamp);
 }
 
@@ -1431,8 +1450,8 @@ body {
   border: 1px solid var(--color-line);
   border-radius: 999px;
   background: var(--color-paper-raised);
-  color: var(--color-blue);
-  box-shadow: 0 6px 18px -8px rgb(20 42 110 / 0.45);
+  color: var(--color-sage);
+  box-shadow: 0 6px 18px -8px rgb(58 68 51 / 0.45);
   cursor: pointer;
   transition:
     transform 260ms var(--spring-tap),
@@ -1470,7 +1489,7 @@ body {
   display: block;
   height: 100%;
   width: 30%;
-  background: linear-gradient(90deg, var(--color-blue), #ff7ab8);
+  background: linear-gradient(90deg, var(--color-sage), #b85a22);
   border-radius: 999px;
   transition: transform 120ms linear;
 }
@@ -1535,20 +1554,20 @@ body {
   opacity: 1;
 }
 /* slide backgrounds (all three-colour gradients) */
-.pk-slide--pink {
-  background: linear-gradient(135deg, #ff7ab8 0%, #ff9fcb 38%, #fbe3ee 72%, #f2f1ee 100%);
-  color: var(--color-blue);
+.pk-slide--amber {
+  background: linear-gradient(135deg, #b85a22 0%, #d98550 38%, #f3e4d6 72%, #e9e7e1 100%);
+  color: var(--color-sage);
 }
 .pk-slide--paper {
-  background: linear-gradient(160deg, #f2f1ee 0%, #f2f1ee 30%, #dfe4f4 62%, #8d9ac2 88%, #142a6e 130%);
-  color: var(--color-blue);
+  background: linear-gradient(160deg, #e9e7e1 0%, #e9e7e1 30%, #dfe3d5 62%, #8e9a80 88%, #3a4433 130%);
+  color: var(--color-sage);
 }
-.pk-slide--pink h2,
+.pk-slide--amber h2,
 .pk-slide--paper h2 {
-  color: var(--color-blue);
+  color: var(--color-sage);
 }
-.pk-slide--blue h2 {
-  color: var(--color-on-blue);
+.pk-slide--sage h2 {
+  color: var(--color-on-sage);
 }
 /* product prints laid on the slide like price-tagged items */
 .pk-print-photo {
@@ -1557,7 +1576,7 @@ body {
   border-radius: 4px;
   background: var(--color-paper-raised);
   border: 6px solid var(--color-paper-raised);
-  box-shadow: 0 22px 40px -18px rgb(11 26 71 / 0.55);
+  box-shadow: 0 22px 40px -18px rgb(34 42 30 / 0.55);
 }
 .pk-print-photo img {
   width: 100%;
@@ -1576,9 +1595,9 @@ body {
   padding: 4px 8px;
   border-radius: 3px;
   background: var(--color-paper-raised);
-  color: var(--color-blue);
+  color: var(--color-sage);
   font: 600 14px/1 var(--font-mono);
-  box-shadow: 0 4px 10px -4px rgb(11 26 71 / 0.4);
+  box-shadow: 0 4px 10px -4px rgb(34 42 30 / 0.4);
 }
 /* dots with a timer fill */
 .pk-dots {
@@ -1592,7 +1611,7 @@ body {
   border: 0;
   border-radius: 999px;
   overflow: hidden;
-  background: rgb(20 42 110 / 0.25);
+  background: rgb(58 68 51 / 0.25);
   cursor: pointer;
   padding: 0;
 }
@@ -1600,7 +1619,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--color-blue);
+  background: var(--color-sage);
   transform: scaleX(0);
   transform-origin: left;
 }
@@ -1614,10 +1633,10 @@ body {
   animation-play-state: paused;
 }
 .pk-dots--light .pk-dot {
-  background: rgb(242 241 238 / 0.35);
+  background: rgb(233 231 225 / 0.35);
 }
 .pk-dots--light .pk-dot::after {
-  background: #ff7ab8;
+  background: #b85a22;
 }
 @keyframes pk-dot-fill {
   to {
@@ -1639,7 +1658,7 @@ body {
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 6px;
-  background: linear-gradient(160deg, #fbfaf8, #dfe4f4);
+  background: linear-gradient(160deg, #f6f5f1, #dfe3d5);
 }
 .pk-thumb__img img {
   width: 100%;
@@ -1664,9 +1683,9 @@ body {
   aspect-ratio: 4 / 5;
   overflow: hidden;
   border-radius: 6px;
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
   text-decoration: none;
-  background: var(--color-blue);
+  background: var(--color-sage);
 }
 .pk-photocard img {
   position: absolute;
@@ -1680,11 +1699,11 @@ body {
   transform: scale(1.06);
 }
 .pk-photocard::after {
-  /* scrim: deep blue rising from the bottom, so white type always reads */
+  /* scrim: deep sage rising from the bottom, so white type always reads */
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, rgb(11 26 71 / 0.92) 0%, rgb(20 42 110 / 0.55) 38%, rgb(20 42 110 / 0) 65%);
+  background: linear-gradient(0deg, rgb(34 42 30 / 0.92) 0%, rgb(58 68 51 / 0.55) 38%, rgb(58 68 51 / 0) 65%);
 }
 .pk-photocard__copy {
   position: absolute;
@@ -1709,8 +1728,8 @@ body {
   margin-top: 10px;
   padding: 4px 8px;
   border-radius: 3px;
-  background: var(--color-bubblegum);
-  color: var(--color-blue-ink);
+  background: var(--color-amber);
+  color: var(--color-on-amber);
   font: 600 12px/1 var(--font-mono);
 }
 
@@ -1738,7 +1757,7 @@ body {
   transition: color 200ms ease;
 }
 .pk-tabs button[aria-selected='true'] {
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
 }
 .pk-tabs__pill {
   position: absolute;
@@ -1746,7 +1765,7 @@ body {
   bottom: 4px;
   left: 0;
   border-radius: 999px;
-  background: linear-gradient(180deg, #213d94, #142a6e);
+  background: linear-gradient(180deg, #536048, #3a4433);
   transition:
     transform 420ms var(--spring-tap),
     width 420ms var(--spring-tap);
@@ -1757,11 +1776,11 @@ body {
 }
 
 /* ---------- Gradient bands ---------- */
-.pk-band-pink {
-  background: linear-gradient(180deg, #f2f1ee 0%, #fbe3ee 45%, #ffd3e7 100%);
+.pk-band-amber {
+  background: linear-gradient(180deg, #e9e7e1 0%, #f3e4d6 45%, #efd6c2 100%);
 }
-.pk-band-blue {
-  background: linear-gradient(180deg, #f2f1ee 0%, #e6e9f3 50%, #dfe4f4 100%);
+.pk-band-sage {
+  background: linear-gradient(180deg, #e9e7e1 0%, #e6e8df 50%, #dfe3d5 100%);
 }
 .pk-storecard {
   position: relative;
@@ -1772,24 +1791,24 @@ body {
   min-height: 170px;
   padding: 16px;
   border-radius: 6px;
-  background: linear-gradient(160deg, #fbfaf8 0%, #fbfaf8 55%, #ffe0ee 100%);
-  border: 1px solid rgb(176 24 92 / 0.18);
+  background: linear-gradient(160deg, #f6f5f1 0%, #f6f5f1 55%, #f3e0d0 100%);
+  border: 1px solid rgb(148 66 26 / 0.18);
   color: var(--color-charcoal);
   text-decoration: none;
   transition: transform 300ms var(--spring-tap), box-shadow 300ms ease;
 }
 .pk-storecard:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 28px -18px rgb(176 24 92 / 0.55);
+  box-shadow: 0 16px 28px -18px rgb(148 66 26 / 0.55);
 }
 .pk-storecard__pct {
   font: 800 54px/0.85 var(--font-display);
   font-stretch: 75%;
-  color: var(--color-pink-ink);
+  color: var(--color-amber-ink);
   letter-spacing: -0.02em;
 }
 .pk-storecard--quiet {
-  background: linear-gradient(160deg, #fbfaf8, #eef0f6);
+  background: linear-gradient(160deg, #f6f5f1, #eeefe8);
   border-color: var(--color-line);
 }
 .pk-storecard--quiet .pk-storecard__pct {
@@ -1799,11 +1818,11 @@ body {
 
 /* ---------- Editorial block on graph paper ---------- */
 .pk-graph {
-  background-color: #f2f1ee;
+  background-color: #e9e7e1;
   background-image:
-    linear-gradient(rgb(20 42 110 / 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(20 42 110 / 0.07) 1px, transparent 1px),
-    linear-gradient(180deg, #f2f1ee 0%, #fbe9f1 100%);
+    linear-gradient(rgb(58 68 51 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(58 68 51 / 0.07) 1px, transparent 1px),
+    linear-gradient(180deg, #e9e7e1 0%, #f4e9de 100%);
   background-size:
     24px 24px,
     24px 24px,
@@ -1814,7 +1833,7 @@ body {
   overflow: hidden;
   border-radius: 4px;
   border: 5px solid var(--color-paper-raised);
-  box-shadow: 0 24px 40px -20px rgb(11 26 71 / 0.5);
+  box-shadow: 0 24px 40px -20px rgb(34 42 30 / 0.5);
   background: var(--color-paper-raised);
   will-change: transform;
 }
@@ -1856,7 +1875,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, rgb(11 26 71 / 0.75), rgb(11 26 71 / 0) 45%);
+  background: linear-gradient(0deg, rgb(34 42 30 / 0.75), rgb(34 42 30 / 0) 45%);
   opacity: 0.85;
 }
 .pk-wall__cap {
@@ -1865,7 +1884,7 @@ body {
   right: 10px;
   bottom: 10px;
   z-index: 1;
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
 }
 .pk-wall__cap b {
   display: block;
@@ -1887,10 +1906,10 @@ body {
   z-index: 1;
 }
 
-/* Footer band: deep blue deepening to blue-ink. */
+/* Footer band: deep sage deepening to sage-ink. */
 .pk-footer {
-  background: linear-gradient(180deg, #142a6e 0%, #0b1a47 100%);
-  color: rgb(242 241 238 / 0.85);
+  background: linear-gradient(180deg, #3a4433 0%, #222a1e 100%);
+  color: rgb(233 231 225 / 0.85);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1915,34 +1934,34 @@ body {
   isolation: isolate;
 }
 .pk-pagehero--ink {
-  background: var(--color-blue);
-  color: var(--color-on-blue);
+  background: var(--color-sage);
+  color: var(--color-on-sage);
 }
 .pk-pagehero--ink .pk-ink--seam {
-  background: radial-gradient(48% 70% at 92% 100%, #f2f1ee 0%, #f2f1ee 40%, rgb(242 241 238 / 0.5) 58%, rgb(242 241 238 / 0) 80%);
+  background: radial-gradient(48% 70% at 92% 100%, #e9e7e1 0%, #e9e7e1 40%, rgb(233 231 225 / 0.5) 58%, rgb(233 231 225 / 0) 80%);
 }
 .pk-pagehero--ink .pk-ink--glow {
-  background: radial-gradient(22% 34% at 92% 100%, #ff7ab8 0%, #ff7ab8 30%, rgb(255 122 184 / 0) 100%);
+  background: radial-gradient(22% 34% at 92% 100%, #b85a22 0%, #b85a22 30%, rgb(184 90 34 / 0) 100%);
 }
-.pk-pagehero--pink {
-  background: linear-gradient(120deg, #ff7ab8 0%, #ffa6cf 35%, #fde5ef 70%, #f2f1ee 100%);
-  color: var(--color-blue);
+.pk-pagehero--amber {
+  background: linear-gradient(120deg, #b85a22 0%, #dd8f5d 35%, #f4e6da 70%, #e9e7e1 100%);
+  color: var(--color-sage);
 }
 .pk-pagehero--paper {
-  background: linear-gradient(150deg, #f2f1ee 0%, #f2f1ee 35%, #e4e8f4 70%, #c9d0e6 100%);
-  color: var(--color-blue);
+  background: linear-gradient(150deg, #e9e7e1 0%, #e9e7e1 35%, #e4e7dc 70%, #c8cfba 100%);
+  color: var(--color-sage);
 }
 .pk-pagehero__eyebrow {
   margin-bottom: 10px;
 }
 .pk-pagehero--ink .pk-pagehero__eyebrow {
-  color: #ff9fcb;
+  color: #d98550;
 }
-.pk-pagehero--pink .pk-pagehero__eyebrow {
-  color: var(--color-blue-ink);
+.pk-pagehero--amber .pk-pagehero__eyebrow {
+  color: var(--color-sage-ink);
 }
 .pk-pagehero--paper .pk-pagehero__eyebrow {
-  color: var(--color-pink-ink);
+  color: var(--color-amber-ink);
 }
 .pk-pagehero__title {
   font: 800 clamp(34px, 7vw, 56px) / 0.95 var(--font-display);
@@ -1952,7 +1971,7 @@ body {
   overflow-wrap: anywhere;
 }
 .pk-pagehero--ink .pk-pagehero__title {
-  color: var(--color-on-blue);
+  color: var(--color-on-sage);
 }
 .pk-pagehero__sub {
   margin-top: 12px;
@@ -1999,7 +2018,7 @@ body {
   position: sticky;
   top: 56px;
   z-index: 20;
-  background: rgb(242 241 238 / 0.92);
+  background: rgb(233 231 225 / 0.92);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-line);
@@ -2009,11 +2028,11 @@ body {
 .pk-panel {
   border-radius: 8px;
   border: 1px solid var(--color-line);
-  background: linear-gradient(170deg, #fbfaf8 0%, #fbfaf8 55%, #f6eef3 100%);
-  box-shadow: 0 18px 40px -30px rgb(20 42 110 / 0.45);
+  background: linear-gradient(170deg, #f6f5f1 0%, #f6f5f1 55%, #f2ece4 100%);
+  box-shadow: 0 18px 40px -30px rgb(58 68 51 / 0.45);
 }
-.pk-panel--blue {
-  background: linear-gradient(170deg, #fbfaf8 0%, #f4f5fa 50%, #e4e8f4 100%);
+.pk-panel--sage {
+  background: linear-gradient(170deg, #f6f5f1 0%, #f3f3ee 50%, #e4e7dc 100%);
 }
 
 /* Product gallery with hover/tap zoom */
@@ -2021,7 +2040,7 @@ body {
   position: relative;
   overflow: hidden;
   border-radius: 8px;
-  background: linear-gradient(160deg, #fbfaf8, #e4e8f4);
+  background: linear-gradient(160deg, #f6f5f1, #e4e7dc);
   aspect-ratio: 4 / 5;
   cursor: zoom-in;
 }
@@ -2052,7 +2071,7 @@ body {
   cursor: pointer;
   list-style: none;
   font: 700 17px/1.2 var(--font-display);
-  color: var(--color-blue);
+  color: var(--color-sage);
 }
 .pk-acc summary::-webkit-details-marker {
   display: none;
@@ -2061,8 +2080,8 @@ body {
   content: '';
   width: 12px;
   height: 12px;
-  border-right: 2px solid var(--color-blue);
-  border-bottom: 2px solid var(--color-blue);
+  border-right: 2px solid var(--color-sage);
+  border-bottom: 2px solid var(--color-sage);
   transform: rotate(45deg) translateY(-3px);
   transition: transform 300ms var(--spring-tap);
 }
@@ -2078,12 +2097,12 @@ body {
 
 /* Chat */
 .pk-bubble-user {
-  background: linear-gradient(135deg, #213d94, #142a6e);
-  color: var(--color-on-blue);
+  background: linear-gradient(135deg, #536048, #3a4433);
+  color: var(--color-on-sage);
   border-radius: 14px 14px 3px 14px;
 }
 .pk-bubble-bot {
-  background: linear-gradient(160deg, #fbfaf8 0%, #fbfaf8 60%, #fde9f2 100%);
+  background: linear-gradient(160deg, #f6f5f1 0%, #f6f5f1 60%, #f5e9df 100%);
   border: 1px solid var(--color-line);
   border-radius: 14px 14px 14px 3px;
 }
@@ -2096,7 +2115,7 @@ body {
   height: 7px;
   margin-right: 4px;
   border-radius: 999px;
-  background: var(--color-blue);
+  background: var(--color-sage);
   opacity: 0.35;
 }
 .pk-starter {
@@ -2108,9 +2127,9 @@ body {
   padding: 14px;
   border-radius: 8px;
   border: 1px solid var(--color-line);
-  background: linear-gradient(160deg, #fbfaf8 0%, #fbfaf8 55%, #e4e8f4 100%);
+  background: linear-gradient(160deg, #f6f5f1 0%, #f6f5f1 55%, #e4e7dc 100%);
   text-align: left;
-  color: var(--color-blue);
+  color: var(--color-sage);
   font: 700 15px/1.3 var(--font-sans);
   cursor: pointer;
   transition:
@@ -2118,11 +2137,11 @@ body {
     box-shadow 300ms ease;
 }
 .pk-starter:nth-child(even) {
-  background: linear-gradient(160deg, #fbfaf8 0%, #fbfaf8 55%, #fde3ee 100%);
+  background: linear-gradient(160deg, #f6f5f1 0%, #f6f5f1 55%, #f3e3d4 100%);
 }
 .pk-starter:hover {
   transform: translateY(-3px);
-  box-shadow: 0 14px 26px -18px rgb(20 42 110 / 0.5);
+  box-shadow: 0 14px 26px -18px rgb(58 68 51 / 0.5);
 }
 .pk-starter:active {
   transform: scale(0.97);
@@ -2134,11 +2153,11 @@ body {
   border-bottom: 1px solid var(--color-line);
 }
 .pk-cmp tbody tr:nth-child(even) {
-  background: rgb(223 228 244 / 0.35);
+  background: rgb(223 227 213 / 0.35);
 }
 .pk-cmp .is-best {
-  background: linear-gradient(180deg, transparent 60%, rgb(255 122 184 / 0.45) 60%);
-  color: var(--color-pink-ink);
+  background: linear-gradient(180deg, transparent 60%, rgb(184 90 34 / 0.45) 60%);
+  color: var(--color-amber-ink);
   font-weight: 700;
   padding: 0 2px;
 }
@@ -2182,53 +2201,53 @@ body {
  * Mesh + luminous gradients.
  * Every coloured surface is a mesh: several soft radial colour points laid over a base, so the
  * colour flows in more than one direction. Luminous: each mesh carries a bright light core
- * (white on pink/paper, electric blue on ink) and a slow drifting sheen that brightens with
- * `screen`, like light moving across glossy card. Pink never fades straight into blue: it always
+ * (white on amber/paper, electric sage on ink) and a slow drifting sheen that brightens with
+ * `screen`, like light moving across glossy card. Amber never fades straight into sage: it always
  * passes through a white/charcoal-white halo first, so no purple appears.
  * ========================================================================================== */
 :root {
   --mesh-ink:
-    radial-gradient(42% 58% at 16% 14%, rgb(74 110 232 / 0.62) 0%, rgb(74 110 232 / 0) 70%),
+    radial-gradient(42% 58% at 16% 14%, rgb(150 172 126 / 0.62) 0%, rgb(150 172 126 / 0) 70%),
     radial-gradient(34% 42% at 62% 0%, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0) 70%),
-    radial-gradient(48% 60% at 100% 46%, rgb(43 74 176 / 0.75) 0%, rgb(43 74 176 / 0) 72%),
-    radial-gradient(60% 70% at 0% 100%, #081439 0%, rgb(8 20 57 / 0) 70%),
-    radial-gradient(50% 50% at 55% 70%, #0d1f56 0%, rgb(13 31 86 / 0) 75%),
-    #142a6e;
-  --mesh-pink:
-    radial-gradient(46% 60% at 12% 16%, rgb(255 255 255 / 0.85) 0%, rgb(255 255 255 / 0) 68%),
-    radial-gradient(40% 55% at 88% 86%, #ff5fa9 0%, rgb(255 95 169 / 0) 70%),
-    radial-gradient(44% 52% at 78% 10%, #ffc4df 0%, rgb(255 196 223 / 0) 72%),
-    radial-gradient(52% 58% at 34% 100%, rgb(242 241 238 / 0.9) 0%, rgb(242 241 238 / 0) 70%),
-    radial-gradient(38% 46% at 52% 46%, #ffa0cc 0%, rgb(255 160 204 / 0) 75%),
-    #ff8ec3;
+    radial-gradient(48% 60% at 100% 46%, rgb(96 112 84 / 0.75) 0%, rgb(96 112 84 / 0) 72%),
+    radial-gradient(60% 70% at 0% 100%, #171d14 0%, rgb(23 29 20 / 0) 70%),
+    radial-gradient(50% 50% at 55% 70%, #2b3427 0%, rgb(43 52 39 / 0) 75%),
+    #3a4433;
+  --mesh-amber:
+    radial-gradient(46% 60% at 12% 16%, rgb(255 255 255 / 0.8) 0%, rgb(255 255 255 / 0) 68%),
+    radial-gradient(42% 58% at 92% 90%, #c0642b 0%, rgb(192 100 43 / 0) 70%),
+    radial-gradient(44% 52% at 80% 8%, #e3a77d 0%, rgb(227 167 125 / 0) 72%),
+    radial-gradient(52% 58% at 34% 100%, rgb(233 231 225 / 0.9) 0%, rgb(233 231 225 / 0) 70%),
+    radial-gradient(38% 46% at 58% 46%, #e9c3a3 0%, rgb(233 195 163 / 0) 75%),
+    #eed6c2;
   --mesh-paper:
     radial-gradient(48% 62% at 26% 18%, rgb(255 255 255 / 0.95) 0%, rgb(255 255 255 / 0) 70%),
-    radial-gradient(40% 54% at 94% 6%, rgb(255 196 223 / 0.85) 0%, rgb(255 196 223 / 0) 70%),
-    radial-gradient(46% 60% at 88% 100%, rgb(196 207 240 / 0.95) 0%, rgb(196 207 240 / 0) 72%),
-    radial-gradient(34% 48% at 4% 96%, rgb(255 214 233 / 0.7) 0%, rgb(255 214 233 / 0) 70%),
-    #f2f1ee;
+    radial-gradient(40% 54% at 94% 6%, rgb(238 198 166 / 0.85) 0%, rgb(238 198 166 / 0) 70%),
+    radial-gradient(46% 60% at 88% 100%, rgb(198 207 184 / 0.95) 0%, rgb(198 207 184 / 0) 72%),
+    radial-gradient(34% 48% at 4% 96%, rgb(240 216 196 / 0.7) 0%, rgb(240 216 196 / 0) 70%),
+    #e9e7e1;
   /* quieter meshes for long bands and cards */
-  --mesh-band-pink:
+  --mesh-band-amber:
     radial-gradient(50% 70% at 8% 0%, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0) 70%),
-    radial-gradient(46% 70% at 92% 100%, rgb(255 168 207 / 0.75) 0%, rgb(255 168 207 / 0) 72%),
-    radial-gradient(40% 60% at 60% 40%, rgb(255 224 238 / 0.9) 0%, rgb(255 224 238 / 0) 75%),
-    #f7eef1;
-  --mesh-band-blue:
+    radial-gradient(46% 70% at 92% 100%, rgb(225 158 112 / 0.75) 0%, rgb(225 158 112 / 0) 72%),
+    radial-gradient(40% 60% at 60% 40%, rgb(244 226 211 / 0.9) 0%, rgb(244 226 211 / 0) 75%),
+    #f2ebe3;
+  --mesh-band-sage:
     radial-gradient(50% 70% at 92% 0%, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0) 70%),
-    radial-gradient(46% 70% at 6% 100%, rgb(186 199 238 / 0.8) 0%, rgb(186 199 238 / 0) 72%),
-    radial-gradient(40% 60% at 50% 50%, rgb(223 228 244 / 0.9) 0%, rgb(223 228 244 / 0) 75%),
-    #eef0f5;
-  --mesh-card-pink:
-    radial-gradient(70% 70% at 100% 100%, rgb(255 190 220 / 0.8) 0%, rgb(255 190 220 / 0) 70%),
+    radial-gradient(46% 70% at 6% 100%, rgb(186 198 170 / 0.8) 0%, rgb(186 198 170 / 0) 72%),
+    radial-gradient(40% 60% at 50% 50%, rgb(223 227 213 / 0.9) 0%, rgb(223 227 213 / 0) 75%),
+    #eeefe8;
+  --mesh-card-amber:
+    radial-gradient(70% 70% at 100% 100%, rgb(233 192 160 / 0.8) 0%, rgb(233 192 160 / 0) 70%),
     radial-gradient(60% 60% at 0% 0%, #fff 0%, rgb(255 255 255 / 0) 70%),
-    #fbfaf8;
-  --mesh-card-blue:
-    radial-gradient(70% 70% at 100% 100%, rgb(200 210 240 / 0.85) 0%, rgb(200 210 240 / 0) 70%),
+    #f6f5f1;
+  --mesh-card-sage:
+    radial-gradient(70% 70% at 100% 100%, rgb(202 210 188 / 0.85) 0%, rgb(202 210 188 / 0) 70%),
     radial-gradient(60% 60% at 0% 0%, #fff 0%, rgb(255 255 255 / 0) 70%),
-    #fbfaf8;
+    #f6f5f1;
   /* the moving light */
   --lumen-light: radial-gradient(closest-side, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.18) 45%, rgb(255 255 255 / 0) 100%);
-  --lumen-ink: radial-gradient(closest-side, rgb(96 132 255 / 0.55), rgb(96 132 255 / 0.16) 50%, rgb(96 132 255 / 0) 100%);
+  --lumen-ink: radial-gradient(closest-side, rgb(166 188 140 / 0.55), rgb(166 188 140 / 0.16) 50%, rgb(166 188 140 / 0) 100%);
 }
 
 /* ---------- Big surfaces ---------- */
@@ -2236,46 +2255,46 @@ body {
 .pk-pagehero--ink {
   background: var(--mesh-ink);
 }
-.pk-slide--pink,
-.pk-pagehero--pink {
-  background: var(--mesh-pink);
+.pk-slide--amber,
+.pk-pagehero--amber {
+  background: var(--mesh-amber);
 }
 .pk-slide--paper,
 .pk-pagehero--paper {
   background: var(--mesh-paper);
 }
-.pk-band-pink {
-  background: var(--mesh-band-pink);
+.pk-band-amber {
+  background: var(--mesh-band-amber);
 }
-.pk-band-blue {
-  background: var(--mesh-band-blue);
+.pk-band-sage {
+  background: var(--mesh-band-sage);
 }
 .pk-footer {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   background:
-    radial-gradient(40% 80% at 85% 0%, rgb(74 110 232 / 0.45) 0%, rgb(74 110 232 / 0) 70%),
-    radial-gradient(50% 90% at 10% 100%, #071233 0%, rgb(7 18 51 / 0) 70%),
-    radial-gradient(30% 60% at 40% 30%, rgb(43 74 176 / 0.5) 0%, rgb(43 74 176 / 0) 70%),
-    #0f2160;
+    radial-gradient(40% 80% at 85% 0%, rgb(150 172 126 / 0.45) 0%, rgb(150 172 126 / 0) 70%),
+    radial-gradient(50% 90% at 10% 100%, #151a12 0%, rgb(21 26 18 / 0) 70%),
+    radial-gradient(30% 60% at 40% 30%, rgb(96 112 84 / 0.5) 0%, rgb(96 112 84 / 0) 70%),
+    #2f3a2a;
 }
 .pk-graph {
   background-image:
-    linear-gradient(rgb(20 42 110 / 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(20 42 110 / 0.07) 1px, transparent 1px),
-    var(--mesh-band-pink);
+    linear-gradient(rgb(58 68 51 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(58 68 51 / 0.07) 1px, transparent 1px),
+    var(--mesh-band-amber);
 }
 
-/* luminous core on the ink fold layer: an electric-blue light that follows pointer/scroll */
+/* luminous core on the ink fold layer: an electric-sage light that follows pointer/scroll */
 .pk-ink--fold {
   background:
-    radial-gradient(30% 26% at 30% 26%, rgb(110 145 255 / 0.5), rgb(110 145 255 / 0) 70%),
-    radial-gradient(55% 45% at 22% 18%, rgb(11 26 71 / 0.6), rgb(11 26 71 / 0) 70%);
+    radial-gradient(30% 26% at 30% 26%, rgb(178 198 150 / 0.5), rgb(178 198 150 / 0) 70%),
+    radial-gradient(55% 45% at 22% 18%, rgb(34 42 30 / 0.6), rgb(34 42 30 / 0) 70%);
 }
 
 /* ---------- Drifting light (composited transform only: cheap on mid phones) ---------- */
-.pk-slide--pink::after,
+.pk-slide--amber::after,
 .pk-slide--paper::after,
 .pk-pagehero::after,
 .pk-footer::after {
@@ -2296,7 +2315,7 @@ body {
 .pk-footer::after {
   background: var(--lumen-ink);
 }
-.pk-slide--pink,
+.pk-slide--amber,
 .pk-slide--paper {
   isolation: isolate;
   overflow: hidden;
@@ -2316,52 +2335,547 @@ body {
 /* ---------- Luminous controls and cards ---------- */
 .pk-btn--primary {
   background:
-    radial-gradient(90% 120% at 50% -20%, rgb(110 145 255 / 0.75) 0%, rgb(110 145 255 / 0) 60%),
-    radial-gradient(60% 80% at 100% 120%, #0b1a47 0%, rgb(11 26 71 / 0) 70%),
-    #1a3486;
+    radial-gradient(90% 120% at 50% -20%, rgb(178 198 150 / 0.75) 0%, rgb(178 198 150 / 0) 60%),
+    radial-gradient(60% 80% at 100% 120%, #222a1e 0%, rgb(34 42 30 / 0) 70%),
+    #485540;
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.22),
-    0 8px 22px -10px rgb(43 74 176 / 0.8);
+    0 8px 22px -10px rgb(96 112 84 / 0.8);
 }
 .pk-btn--deal {
   background:
     radial-gradient(90% 120% at 50% -20%, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0) 60%),
-    radial-gradient(60% 80% at 100% 120%, #ff5fa9 0%, rgb(255 95 169 / 0) 70%),
-    #ff7ab8;
+    radial-gradient(60% 80% at 100% 120%, #9c4216 0%, rgb(156 66 22 / 0) 70%),
+    #b85a22;
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.5),
-    0 8px 22px -10px rgb(255 95 169 / 0.85);
+    0 8px 22px -10px rgb(156 66 22 / 0.85);
 }
 .pk-bubble-user,
 .pk-tabs__pill {
   background:
-    radial-gradient(80% 120% at 20% -20%, rgb(110 145 255 / 0.7) 0%, rgb(110 145 255 / 0) 60%),
-    #1a3486;
+    radial-gradient(80% 120% at 20% -20%, rgb(178 198 150 / 0.7) 0%, rgb(178 198 150 / 0) 60%),
+    #485540;
 }
 .pk-panel,
 .pk-bubble-bot,
 .pk-storecard,
 .pk-starter:nth-child(even) {
-  background: var(--mesh-card-pink);
+  background: var(--mesh-card-amber);
 }
-.pk-panel--blue,
+.pk-panel--sage,
 .pk-storecard--quiet,
 .pk-starter,
 .pk-gallery {
-  background: var(--mesh-card-blue);
+  background: var(--mesh-card-sage);
 }
 .pk-storecard:hover,
 .pk-starter:hover {
   box-shadow:
-    0 0 0 1px rgb(255 122 184 / 0.35),
-    0 18px 36px -16px rgb(255 95 169 / 0.6);
+    0 0 0 1px rgb(184 90 34 / 0.35),
+    0 18px 36px -16px rgb(156 66 22 / 0.6);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pk-slide--pink::after,
+  .pk-slide--amber::after,
   .pk-slide--paper::after,
   .pk-pagehero::after,
   .pk-footer::after {
     animation: none !important;
+  }
+}
+
+/* ============================================================================================
+ * Food layer: banner ad labels, dish ledger, restaurant cards, reviews with photos/videos.
+ * ========================================================================================== */
+.t-display-md {
+  font: 800 clamp(22px, 3.6vw, 28px) / 1 var(--font-display);
+  font-stretch: 115%;
+  letter-spacing: -0.01em;
+  color: var(--color-sage);
+}
+
+/* "Sponsored" / "Featured" label on banner slides: paid placements are always marked */
+.pk-adtag {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: var(--color-paper-raised);
+  color: var(--color-charcoal);
+  font: 700 11px/1 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+}
+.pk-adtag--paid {
+  background: var(--color-sage-ink);
+  color: var(--color-on-sage);
+  box-shadow: none;
+}
+.pk-pricechip--float {
+  right: auto;
+  bottom: auto;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.pk-thumb__count {
+  margin-left: 4px;
+  font: 500 11px/1 var(--font-mono);
+  color: var(--color-charcoal-muted);
+}
+
+/* Today's price check: one dish, every restaurant, as a till receipt with bars */
+.pk-receipt--ledger {
+  padding: 18px 18px 26px;
+  box-shadow: 0 24px 40px -28px rgb(34 42 30 / 0.55);
+}
+.pk-receipt__head,
+.pk-receipt__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font: 600 12px/1.4 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-charcoal-muted);
+}
+.pk-receipt__head {
+  padding-bottom: 10px;
+  border-bottom: 1.5px dashed var(--color-line-strong);
+}
+.pk-receipt__foot {
+  justify-content: flex-start;
+  padding-top: 12px;
+  border-top: 1.5px dashed var(--color-line-strong);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+}
+.pk-receipt__foot b {
+  color: var(--color-amber-ink);
+}
+.pk-ledgerlist {
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+.pk-ledgerlist a {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(40px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px dotted var(--color-line);
+  color: inherit;
+  text-decoration: none;
+}
+.pk-ledgerlist a:hover .pk-ledgerlist__name b {
+  text-decoration: underline;
+}
+.pk-ledgerlist__name {
+  min-width: 0;
+  font-family: var(--font-sans);
+}
+.pk-ledgerlist__name b {
+  display: block;
+  font-size: 15px;
+  color: var(--color-sage);
+}
+.pk-ledgerlist__name span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--color-charcoal-muted);
+}
+.pk-ledgerlist__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-sage-tint);
+  overflow: hidden;
+}
+.pk-ledgerlist__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8e9a80, var(--color-sage));
+  transform-origin: left;
+  animation: pk-grow 900ms var(--spring-soft) both;
+}
+.pk-ledgerlist li.is-cheapest .pk-ledgerlist__bar span {
+  background: linear-gradient(90deg, #d98550, var(--color-amber));
+}
+.pk-ledgerlist__price {
+  font: 600 15px/1 var(--font-mono);
+  color: var(--color-sage);
+}
+.pk-ledgerlist li.is-cheapest .pk-ledgerlist__price {
+  color: var(--color-amber-ink);
+}
+@keyframes pk-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Restaurant cards */
+.pk-photocard__sticker {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+}
+.pk-restcard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid var(--color-line);
+  background: var(--mesh-card-sage, var(--color-paper-raised));
+  color: inherit;
+  text-decoration: none;
+  transition:
+    box-shadow 300ms ease,
+    border-color 200ms ease;
+}
+.pk-restcard:hover {
+  border-color: var(--color-line-strong);
+  box-shadow: 0 20px 36px -22px rgb(34 42 30 / 0.55);
+}
+.pk-restcard__media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--color-concrete);
+  overflow: hidden;
+}
+.pk-restcard__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms var(--ease-snap);
+}
+.pk-restcard:hover .pk-restcard__media img {
+  transform: scale(1.04);
+}
+.pk-restcard__media .pk-sticker {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+.pk-restcard__body {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+.pk-restcard__dishes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pk-restcard__dishes span {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-sage-tint);
+  color: var(--color-sage);
+  font: 600 12px/1.3 var(--font-sans);
+}
+.pk-restcard__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-line-strong);
+  font: 500 13px/1.3 var(--font-sans);
+  color: var(--color-charcoal-muted);
+}
+.pk-restcard__foot b {
+  font-family: var(--font-mono);
+  color: var(--color-sage);
+}
+/* Google / Parakh rating badge: always says where the stars come from */
+.pk-gbadge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--color-paper-raised);
+  color: var(--color-sage);
+  font: 700 13px/1.2 var(--font-mono);
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  text-decoration: none;
+}
+.pk-gbadge small {
+  font: 500 11px/1 var(--font-sans);
+  color: var(--color-charcoal-muted);
+}
+.pk-gbadge--lg {
+  padding: 8px 12px;
+  font-size: 15px;
+}
+.pk-offerchip {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: var(--color-amber);
+  color: var(--color-on-amber);
+  font: 500 13px/1.3 var(--font-sans);
+}
+.pk-chip--static {
+  cursor: default;
+  pointer-events: none;
+}
+.pk-tick {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, transparent 45%, var(--color-on-amber) 45% 55%, transparent 55%) 6px 3px / 6px 9px no-repeat,
+    var(--color-amber);
+  transform: rotate(10deg);
+}
+
+/* Reviews */
+.pk-review {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+}
+.pk-review__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pk-review__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--color-sage);
+  color: var(--color-on-sage);
+  font: 800 15px/1 var(--font-display);
+}
+.pk-review__author {
+  display: block;
+  font: 700 15px/1.2 var(--font-sans);
+  color: var(--color-charcoal);
+}
+.pk-review__author a {
+  color: inherit;
+}
+.pk-review__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font: 400 12px/1.2 var(--font-sans);
+  color: var(--color-charcoal-muted);
+}
+.pk-review__src {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--color-sage-tint);
+  color: var(--color-sage);
+  font-weight: 700;
+}
+.pk-review__src--google {
+  background: var(--color-concrete);
+  color: var(--color-charcoal);
+}
+.pk-review__src--verified {
+  background: var(--color-amber-soft);
+  color: var(--color-amber-ink);
+}
+.pk-review__stars {
+  margin-left: auto;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--color-line-strong);
+  white-space: nowrap;
+}
+.pk-review__stars .is-on {
+  color: var(--color-amber);
+}
+.pk-review__dish {
+  display: block;
+  margin: 10px 0 0;
+  font: 700 13px/1.3 var(--font-sans);
+  color: var(--color-sage);
+}
+.pk-review__text {
+  margin: 8px 0 0;
+  font: 400 15px/1.55 var(--font-sans);
+  color: var(--color-charcoal);
+  white-space: pre-line;
+}
+.pk-review__text.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pk-review__media {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.pk-review__media img,
+.pk-review__media video {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--color-concrete);
+}
+.pk-reviewstrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 4px;
+}
+.pk-reviewstrip img,
+.pk-reviewstrip video {
+  flex: none;
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  scroll-snap-align: start;
+  background: var(--color-concrete);
+}
+.pk-ratebars {
+  display: grid;
+  gap: 6px;
+  max-width: 320px;
+  font: 500 13px/1 var(--font-mono);
+  color: var(--color-charcoal-muted);
+}
+.pk-ratebars > div {
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+}
+.pk-ratebars__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-concrete);
+  overflow: hidden;
+}
+.pk-ratebars__bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-amber);
+}
+
+/* Review form */
+.pk-field {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-tag);
+  background: var(--color-paper-raised);
+  box-shadow: inset 0 0 0 1.5px var(--color-line-strong);
+  color: var(--color-charcoal);
+  font: 400 16px/1.4 var(--font-sans);
+}
+.pk-field:focus {
+  outline: 2px solid var(--color-sage);
+  outline-offset: 1px;
+}
+.pk-ratepick {
+  display: flex;
+  gap: 4px;
+}
+.pk-ratepick button {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--color-line-strong);
+  transition: transform 260ms var(--spring-tap), color 120ms linear;
+}
+.pk-ratepick button.is-on {
+  color: var(--color-amber);
+}
+.pk-ratepick button:active {
+  transform: scale(0.85);
+}
+.pk-uploads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pk-uploads__item,
+.pk-uploads__add {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.pk-uploads__item img,
+.pk-uploads__item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pk-uploads__item button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgb(34 42 30 / 0.8);
+  color: var(--color-on-sage);
+  font-size: 16px;
+  line-height: 1;
+}
+.pk-uploads__tag {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--color-amber);
+  color: var(--color-on-amber);
+  font: 700 10px/1 var(--font-sans);
+}
+.pk-uploads__add {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  border: 1.5px dashed var(--color-line-strong);
+  color: var(--color-sage);
+  font: 600 12px/1 var(--font-sans);
+  cursor: pointer;
+}
+.pk-uploads__add span:first-of-type {
+  font-size: 22px;
+}
+.pk-uploads__add:focus-within {
+  outline: 2px solid var(--color-sage);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pk-ledgerlist__bar span {
+    animation: none;
   }
 }

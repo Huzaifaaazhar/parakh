@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { CompareTrayService } from '../core/compare-tray.service';
 import { Product } from '../core/models';
 import { WishlistService } from '../core/wishlist.service';
-import { PkrPipe, TimeAgoPipe } from './format';
+import { LabelPipe, PkrPipe, TimeAgoPipe } from './format';
 import { Odometer, Tilt } from './motion';
 import { ProductImage } from './product-image';
 
@@ -15,7 +15,7 @@ import { ProductImage } from './product-image';
 @Component({
   selector: 'app-product-card',
   host: { class: 'block h-full' },
-  imports: [RouterLink, PkrPipe, TimeAgoPipe, ProductImage, Tilt, Odometer],
+  imports: [RouterLink, PkrPipe, TimeAgoPipe, LabelPipe, ProductImage, Tilt, Odometer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let p = product();
@@ -27,7 +27,7 @@ import { ProductImage } from './product-image';
         } @else if (p.discount_percentage > 0) {
           <span class="pk-card__sticker pk-sticker">−{{ round(p.discount_percentage) }}%</span>
         } @else if (!p.in_stock) {
-          <span class="pk-card__sticker pk-sticker pk-sticker--muted">Sold out</span>
+          <span class="pk-card__sticker pk-sticker pk-sticker--muted">Unavailable</span>
         }
         <button
           type="button"
@@ -42,8 +42,16 @@ import { ProductImage } from './product-image';
         </button>
       </div>
       <div class="pk-card__body">
-        <span class="pk-card__store">{{ p.store_name || p.brand_name }}</span>
-        <h3 class="pk-card__title"><a [routerLink]="['/products', p.id]">{{ p.product_name }}</a></h3>
+        <span class="pk-card__store">
+          {{ p.store_name || p.brand_name }}
+          @if (p.store_rating) {
+            <span class="pk-card__rating" [attr.aria-label]="'Rated ' + p.store_rating + ' on Google'">★ {{ p.store_rating }}</span>
+          }
+        </span>
+        <h3 class="pk-card__title"><a [routerLink]="['/dishes', p.id]">{{ p.product_name }}</a></h3>
+        @if (p.portion || p.protein) {
+          <p class="pk-card__portion">{{ p.portion || '' }}{{ p.portion && p.protein ? ' · ' : '' }}{{ p.protein ? (p.protein | label) : '' }}</p>
+        }
         <div class="pk-price">
           <app-odometer class="pk-price__now" [class.pk-price__now--sale]="onSale()" [value]="p.price" />
           @if (wasPrice(); as was) {
@@ -55,9 +63,11 @@ import { ProductImage } from './product-image';
             } @else if (onSale()) {
               You save <b>{{ p.original_price - p.price | pkr }}</b>
             } @else if (!p.in_stock) {
-              Out of stock · checked {{ p.last_updated | timeAgo }}
+              Not available · checked {{ p.last_updated | timeAgo }}
+            } @else if (p.unit_price) {
+              <b>{{ p.unit_price | pkr }}</b> {{ p.unit_label }}
             } @else {
-              Checked <b>{{ p.last_updated | timeAgo }}</b>
+              Menu checked <b>{{ p.last_updated | timeAgo }}</b>
             }
           </span>
         </div>

@@ -27,8 +27,9 @@ RUN if [ "$INSTALL_ML" = "true" ]; then \
 ARG INSTALL_OPTIONAL=false
 RUN if [ "$INSTALL_OPTIONAL" = "true" ]; then pip install -r requirements-optional.txt ; fi
 
-# Playwright browsers for Scrapling's StealthyFetcher/DynamicFetcher (JS-heavy stores only).
-ARG INSTALL_BROWSERS=false
+# Headless Chromium: restaurant menus on ordering platforms (Indolj) are read by loading the site.
+# Needed by the scraping worker; the API-only image can build with INSTALL_BROWSERS=false.
+ARG INSTALL_BROWSERS=true
 RUN if [ "$INSTALL_BROWSERS" = "true" ]; then scrapling install ; fi
 
 COPY backend/ ./

@@ -18,41 +18,65 @@ import { Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
-import { Product, SalesOverview, SortOption, StoreSummary } from '../core/models';
-import { PkrPipe, TimeAgoPipe } from '../shared/format';
-import { CountUp, Motion, Odometer, Reveal } from '../shared/motion';
+import { Banner, OffersResponse, Product, Restaurant, Review } from '../core/models';
+import { HEADLINE_DISHES, LabelPipe, PkrPipe, TimeAgoPipe, dishLabel } from '../shared/format';
+import { CountUp, Motion, Reveal } from '../shared/motion';
 import { ProductCard } from '../shared/product-card';
 import { Rail } from '../shared/rail';
+import { ReviewCard } from '../shared/review-card';
 import { SkeletonGrid } from '../shared/states';
 
 interface Tile {
   key: string;
   label: string;
   image: string | null;
-}
-interface Dept {
-  key: string;
-  label: string;
-  blurb: string;
-  image: string | null;
   count: number | null;
 }
 
-const SLIDE_MS = 6500;
+/** One slide of the top banner: our own hero, a restaurant's ad, a live offer, or the "advertise here" slot. */
+interface Slide {
+  kind: 'hero' | 'sponsored' | 'featured' | 'offer' | 'advertise';
+  tone: 'ink' | 'amber' | 'paper';
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  link: string[] | null;
+  href: string | null;
+  bannerId: number | null;
+  images: string[];
+}
+
+/** "Same dish, every restaurant" ledger tabs. */
+interface DishCheck {
+  label: string;
+  q: string;
+  category: string;
+  unit: boolean; // compare per-unit price (pizza per sq in) instead of plate price
+  note: string;
+}
+
+interface LedgerRow {
+  product: Product;
+  value: number;
+  share: number; // 0..1 of the most expensive row, for the bar
+}
+
+const SLIDE_MS = 7000;
 
 @Component({
   selector: 'app-home',
-  imports: [FormsModule, RouterLink, DecimalPipe, PkrPipe, TimeAgoPipe, ProductCard, SkeletonGrid, Reveal, CountUp, Odometer, Rail],
+  imports: [FormsModule, RouterLink, DecimalPipe, PkrPipe, LabelPipe, TimeAgoPipe, ProductCard, ReviewCard, SkeletonGrid, Reveal, CountUp, Rail],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- 1. Hero slider -->
+    <!-- 1. Banner slider: our hero, restaurant ads (labelled), live offers, and the ad slot itself -->
     <section
       #slider
       class="pk-slider"
       [class.is-paused]="paused()"
       [style.--slide-ms]="slideMs + 'ms'"
       aria-roledescription="carousel"
-      aria-label="Highlights"
+      aria-label="Featured restaurants and offers"
       (pointerenter)="pause(true)"
       (pointerleave)="pause(false)"
       (focusin)="pause(true)"
@@ -60,86 +84,74 @@ const SLIDE_MS = 6500;
       (pointerdown)="dragStart($event)"
       (pointerup)="dragEnd($event)"
     >
-      <!-- Slide 1: brand + search on the ink field -->
-      <div class="pk-slide pk-inkhero pk-on-blue" [class.is-active]="slide() === 0" role="group" aria-roledescription="slide" aria-label="1 of 3" [attr.aria-hidden]="slide() !== 0">
-        <div class="pk-ink pk-ink--fold" aria-hidden="true"></div>
-        <div class="pk-ink pk-ink--seam" aria-hidden="true"></div>
-        <div class="pk-ink pk-ink--glow" aria-hidden="true"></div>
-        <div class="relative z-[2] mx-auto grid h-full max-w-7xl items-center gap-6 px-4 pb-16 pt-8 sm:grid-cols-[1.15fr_1fr] sm:pt-0">
-          <div class="pk-slide__copy">
-            <h1 class="t-display-xl">Compare before you <span class="pk-hero__mark">buy.</span></h1>
-            <p class="mt-4 max-w-[36ch] text-[17px] leading-normal sm:text-lg">{{ overview()?.total_products ?? 0 | number }} products from {{ storeCount() || 15 }} Pakistani stores, price-checked every few hours.</p>
-            <form (ngSubmit)="search()" class="pk-search mt-6 max-w-xl" role="search">
-              <label for="hero-q" class="sr-only">What are you looking for?</label>
-              <input id="hero-q" [(ngModel)]="query" name="q" placeholder="Men's kurta under 4000" autocomplete="off" />
-              <button type="submit">Search prices</button>
-            </form>
-            <div class="mt-3 flex flex-wrap gap-2">
-              @for (q of examples; track q) {
-                <a class="pk-chip pk-chip--solid" [routerLink]="['/products']" [queryParams]="{ q }">{{ q }}</a>
+      @for (s of slides(); track $index; let i = $index) {
+        <div
+          class="pk-slide"
+          [class.pk-inkhero]="s.tone === 'ink'"
+          [class.pk-on-sage]="s.tone === 'ink'"
+          [class.pk-slide--amber]="s.tone === 'amber'"
+          [class.pk-slide--paper]="s.tone === 'paper'"
+          [class.is-active]="slide() === i"
+          role="group"
+          aria-roledescription="slide"
+          [attr.aria-label]="(i + 1) + ' of ' + slides().length"
+          [attr.aria-hidden]="slide() !== i"
+        >
+          @if (s.tone === 'ink') {
+            <div class="pk-ink pk-ink--fold" aria-hidden="true"></div>
+            <div class="pk-ink pk-ink--seam" aria-hidden="true"></div>
+            <div class="pk-ink pk-ink--glow" aria-hidden="true"></div>
+          }
+          <div class="relative z-[2] mx-auto grid h-full max-w-7xl items-center gap-6 px-4 pb-16 pt-8 sm:grid-cols-[1.15fr_1fr] sm:pt-0">
+            <div class="pk-slide__copy">
+              @if (s.kind === 'sponsored' || s.kind === 'featured') {
+                <span class="pk-adtag" [class.pk-adtag--paid]="s.kind === 'sponsored'">{{ s.kind === 'sponsored' ? 'Sponsored' : 'Featured' }}</span>
+              }
+              @if (s.kind === 'hero') {
+                <h1 class="t-display-xl">Same dish. <span class="pk-hero__mark">Every</span> restaurant.</h1>
+              } @else {
+                <p class="t-label" [class.text-amber-ink]="s.tone !== 'ink'">{{ s.eyebrow }}</p>
+                <h2 class="t-display-xl mt-3">{{ s.title }}</h2>
+              }
+              <p class="mt-4 max-w-[38ch] text-[17px] leading-normal sm:text-lg">{{ s.subtitle }}</p>
+              @if (s.kind === 'hero') {
+                <form (ngSubmit)="search()" class="pk-search mt-6 max-w-xl" role="search">
+                  <label for="hero-q" class="sr-only">Which dish are you craving?</label>
+                  <input id="hero-q" [(ngModel)]="query" name="q" placeholder="Chicken tikka under 800" autocomplete="off" />
+                  <button type="submit">Compare</button>
+                </form>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @for (q of examples; track q) {
+                    <a class="pk-chip pk-chip--solid" [routerLink]="['/dishes']" [queryParams]="{ q }">{{ q }}</a>
+                  }
+                </div>
+              } @else {
+                <div class="mt-6 flex flex-wrap items-center gap-3">
+                  @if (s.link) {
+                    <a class="pk-btn" [class.pk-btn--deal]="s.tone === 'ink'" [class.pk-btn--primary]="s.tone !== 'ink'" [routerLink]="s.link" (click)="clicked(s)">{{ s.cta }}</a>
+                  } @else if (s.href) {
+                    <a class="pk-btn pk-btn--primary" [href]="s.href" target="_blank" rel="noopener sponsored" (click)="clicked(s)">{{ s.cta }}</a>
+                  }
+                </div>
               }
             </div>
-          </div>
-          <div class="pk-slide__visual relative hidden h-[420px] sm:block" aria-hidden="true">
-            @for (p of heroPicks(); track p.id; let i = $index) {
-              <div class="pk-print-photo" [style]="printStyle(i)">
-                <img [src]="p.image_url" alt="" />
-                @if (p.discount_percentage > 0) {
-                  <span class="pk-sticker">−{{ p.discount_percentage | number: '1.0-0' }}%</span>
+            <div class="pk-slide__visual relative hidden h-[420px] sm:block" [class.!block]="s.kind !== 'hero'" [class.!h-[230px]]="s.kind !== 'hero'" aria-hidden="true">
+              @for (img of s.images.slice(0, 3); track $index; let j = $index) {
+                <div class="pk-print-photo" [style]="printStyle(j)"><img [src]="img" alt="" /></div>
+              }
+              @if (s.kind === 'hero') {
+                @for (p of heroPicks(); track p.id; let j = $index) {
+                  <span class="pk-pricechip pk-pricechip--float" [style]="chipStyle(j)">{{ p.store_name }} · {{ p.price | pkr }}</span>
                 }
-                <span class="pk-pricechip">{{ p.price | pkr }}</span>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Slide 2: the biggest sale right now (bubblegum gradient) -->
-      @if (topStore(); as st) {
-        <div class="pk-slide pk-slide--pink" [class.is-active]="slide() === 1" role="group" aria-roledescription="slide" aria-label="2 of 3" [attr.aria-hidden]="slide() !== 1">
-          <div class="mx-auto grid h-full max-w-7xl items-center gap-6 px-4 pb-16 pt-10 sm:grid-cols-[1.1fr_1fr] sm:pt-0">
-            <div class="pk-slide__copy">
-              <p class="t-label text-blue-ink">Biggest sale right now</p>
-              <h2 class="t-display-xl mt-3">{{ st.name }} is up to {{ st.max_discount | number: '1.0-0' }}% off</h2>
-              <p class="mt-4 max-w-[36ch] text-[17px] text-blue-ink">{{ st.on_sale | number }} of its {{ st.total_products | number }} items are discounted today.</p>
-              <div class="mt-6"><a class="pk-btn pk-btn--primary" [routerLink]="['/sales']" [queryParams]="{ store: st.slug }">See the {{ st.name }} sale</a></div>
-            </div>
-            <div class="pk-slide__visual relative h-[260px] sm:h-[420px]" aria-hidden="true">
-              @for (p of storePicks(); track p.id; let i = $index) {
-                <div class="pk-print-photo" [style]="printStyle(i)">
-                  <img [src]="p.image_url" alt="" />
-                  <span class="pk-sticker">−{{ p.discount_percentage | number: '1.0-0' }}%</span>
-                  <span class="pk-pricechip">{{ p.price | pkr }}</span>
-                </div>
               }
             </div>
           </div>
         </div>
       }
 
-      <!-- Slide 3: every sale in one place (charcoal white into blue) -->
-      <div class="pk-slide pk-slide--paper" [class.is-active]="slide() === 2" role="group" aria-roledescription="slide" aria-label="3 of 3" [attr.aria-hidden]="slide() !== 2">
-        <div class="mx-auto grid h-full max-w-7xl items-center gap-6 px-4 pb-16 pt-10 sm:grid-cols-[1.1fr_1fr] sm:pt-0">
-          <div class="pk-slide__copy">
-            <p class="t-label text-pink-ink">Updated {{ lastChecked() ? (lastChecked() | timeAgo) : 'today' }}</p>
-            <h2 class="t-display-xl mt-3">Every sale, in one place.</h2>
-            <p class="mt-4 max-w-[36ch] text-[17px]">{{ overview()?.total_on_sale ?? 0 | number }} items are on sale across {{ storeCount() || 15 }} stores, averaging {{ overview()?.average_discount ?? 0 | number: '1.0-0' }}% off.</p>
-            <div class="mt-6"><a class="pk-btn pk-btn--primary" routerLink="/sales">Browse all sales</a></div>
-          </div>
-          <div class="pk-slide__visual grid h-[260px] grid-cols-2 gap-3 sm:h-[420px]" aria-hidden="true">
-            @for (p of wallPicks().slice(0, 4); track p.id) {
-              <div class="relative overflow-hidden rounded-[6px] border-[5px] border-paper-raised bg-paper-raised shadow-[0_18px_30px_-18px_rgba(11,26,71,.55)]">
-                <img [src]="p.image_url" alt="" class="h-full w-full object-cover" />
-                <span class="pk-pricechip">{{ p.price | pkr }}</span>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
       <div class="absolute bottom-6 left-0 right-0 z-[3] mx-auto flex max-w-7xl items-center justify-between px-4">
-        <div class="pk-dots" [class.pk-dots--light]="slide() === 0">
-          @for (i of [0, 1, 2]; track i) {
+        <div class="pk-dots" [class.pk-dots--light]="slides()[slide()]?.tone === 'ink'">
+          @for (s of slides(); track $index; let i = $index) {
             <button type="button" class="pk-dot" [class.is-active]="slide() === i" [class.is-done]="i < slide()" (click)="go(i)" [attr.aria-label]="'Show slide ' + (i + 1)" [attr.aria-current]="slide() === i"></button>
           }
         </div>
@@ -154,44 +166,101 @@ const SLIDE_MS = 6500;
       </div>
     </section>
 
-    <!-- 2. Category thumbnails -->
-    <section class="pt-6" aria-label="Popular categories">
-      <app-rail label="Popular categories">
+    <!-- 2. Dishes people compare -->
+    <section class="pt-6" aria-label="Dishes">
+      <app-rail label="Dishes">
         @for (t of tiles(); track t.key; let i = $index) {
-          <a class="pk-thumb" [appReveal]="i" [routerLink]="['/products']" [queryParams]="{ category: t.key }">
+          <a class="pk-thumb" [appReveal]="i" [routerLink]="['/dishes']" [queryParams]="{ category: t.key }">
             <span class="pk-thumb__img">
               @if (t.image) {
-                <img [src]="t.image" [alt]="''" loading="lazy" />
+                <img [src]="t.image" alt="" loading="lazy" />
               }
             </span>
-            <span class="pk-thumb__label">{{ t.label }}</span>
+            <span class="pk-thumb__label">{{ t.label }}@if (t.count) { <span class="pk-thumb__count">{{ t.count }}</span> }</span>
           </a>
         }
       </app-rail>
     </section>
 
-    <!-- 3. Departments: photo cards -->
-    <section class="mt-12 sm:mt-16" aria-labelledby="departments">
+    <!-- 3. Same dish, every restaurant: the core comparison, live -->
+    <section class="mt-12 sm:mt-16" aria-labelledby="ledger">
+      <div class="mx-auto grid max-w-7xl gap-8 px-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <p class="t-label text-amber-ink">Today's price check</p>
+          <h2 id="ledger" class="t-display-lg mt-2 max-w-[14ch]">One dish, every restaurant.</h2>
+          <p class="mt-3 max-w-[44ch] text-[16px] text-charcoal">
+            Prices straight from each restaurant's own menu, matched like for like: same dish, same protein, same portion.
+          </p>
+          <div class="pk-tabs mt-6" role="tablist" aria-label="Dish to compare">
+            <span class="pk-tabs__pill" [style.width.px]="pill().w" [style.transform]="'translateX(' + pill().x + 'px)'" aria-hidden="true"></span>
+            @for (c of checks; track c.label; let i = $index) {
+              <button #tabBtn type="button" role="tab" [attr.aria-selected]="tab() === i" (click)="tab.set(i)">{{ c.label }}</button>
+            }
+          </div>
+          <p class="t-small mt-4 text-charcoal-muted">{{ checks[tab()].note }}</p>
+        </div>
+        <div class="pk-print" appReveal>
+          <div class="pk-receipt pk-receipt--ledger">
+            <p class="pk-receipt__head">
+              <span>{{ checks[tab()].label }}</span>
+              <span>{{ checks[tab()].unit ? 'per 100 sq in' : 'menu price' }}</span>
+            </p>
+            @if (ledger() === null) {
+              <div class="pk-skel h-64" aria-busy="true"></div>
+            } @else if (!ledger()!.length) {
+              <p class="py-8 text-center text-[15px]">No restaurant lists this dish yet.</p>
+            } @else {
+              <ol class="pk-ledgerlist">
+                @for (row of ledger(); track row.product.id; let i = $index) {
+                  <li [appReveal]="i" [class.is-cheapest]="i === 0">
+                    <a [routerLink]="['/dishes', row.product.id]">
+                      <span class="pk-ledgerlist__name">
+                        <b>{{ row.product.store_name }}</b>
+                        <span>{{ row.product.product_name }}</span>
+                      </span>
+                      <span class="pk-ledgerlist__bar" aria-hidden="true"><span [style.width.%]="row.share * 100"></span></span>
+                      <span class="pk-ledgerlist__price" [class.pk-circled]="i === 0">{{ row.value | pkr }}</span>
+                    </a>
+                  </li>
+                }
+              </ol>
+              @if (spread(); as sp) {
+                <p class="pk-receipt__foot">Cheapest saves <b>{{ sp | pkr }}</b> over the priciest</p>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Restaurants -->
+    <section class="mt-14 sm:mt-20" aria-labelledby="restaurants">
       <div class="mx-auto mb-5 flex max-w-7xl items-end justify-between gap-4 px-4">
         <div>
-          <h2 id="departments" class="t-display-lg">Shop by department</h2>
-          <p class="t-small mt-2">Same item, every store, one price check.</p>
+          <h2 id="restaurants" class="t-display-lg">Restaurants we read</h2>
+          <p class="t-small mt-2">{{ restaurants().length }} menus, refreshed every few hours from their own ordering sites.</p>
         </div>
-        <a routerLink="/products" class="pk-btn pk-btn--quiet pk-btn--sm hidden sm:inline-flex">Browse everything</a>
+        <a routerLink="/restaurants" class="pk-btn pk-btn--quiet pk-btn--sm hidden sm:inline-flex">All restaurants</a>
       </div>
       <div class="mx-auto max-w-7xl">
-        <app-rail label="Departments">
-          @for (d of depts(); track d.key; let i = $index) {
-            <a class="pk-photocard" [appReveal]="i" [routerLink]="['/products']" [queryParams]="{ vertical: d.key }">
-              @if (d.image) {
-                <img [src]="d.image" alt="" loading="lazy" />
+        <app-rail label="Restaurants">
+          @for (r of restaurants(); track r.id; let i = $index) {
+            <a class="pk-photocard pk-photocard--rest" [appReveal]="i" [routerLink]="['/restaurants', r.slug]">
+              @if (r.cover_image) {
+                <img [src]="r.cover_image" alt="" loading="lazy" />
+              }
+              @if (r.offers.length) {
+                <span class="pk-sticker pk-photocard__sticker">{{ r.offers[0].title }}</span>
               }
               <span class="pk-photocard__copy">
-                <span class="pk-photocard__name block">{{ d.label }}</span>
-                <span class="pk-photocard__meta block">{{ d.blurb }}</span>
-                @if (d.count) {
-                  <span class="pk-photocard__count">{{ d.count | number }} items</span>
-                }
+                <span class="pk-photocard__name block">{{ r.name }}</span>
+                <span class="pk-photocard__meta block">{{ r.cuisines.join(' · ') | label }}</span>
+                <span class="pk-photocard__count">
+                  @if (r.rating) {
+                    ★ {{ r.rating }} ·
+                  }
+                  {{ r.menu_items }} dishes · from {{ r.min_price | pkr }}
+                </span>
               </span>
             </a>
           }
@@ -199,76 +268,98 @@ const SLIDE_MS = 6500;
       </div>
     </section>
 
-    <!-- 4. Tabbed deals rail -->
-    <section class="mt-12 sm:mt-16" aria-labelledby="deals">
-      <div class="mx-auto mb-5 flex max-w-7xl flex-wrap items-end justify-between gap-4 px-4">
-        <h2 id="deals" class="t-display-lg">Deals worth a look</h2>
-        <div class="pk-tabs" role="tablist" aria-label="Deal lists">
-          <span class="pk-tabs__pill" [style.width.px]="pill().w" [style.transform]="'translateX(' + pill().x + 'px)'" aria-hidden="true"></span>
-          @for (t of tabs; track t.key; let i = $index) {
-            <button #tabBtn type="button" role="tab" [attr.aria-selected]="tab() === i" (click)="tab.set(i)">{{ t.label }}</button>
-          }
-        </div>
-      </div>
-      <div class="mx-auto max-w-7xl">
-        @if (tabItems() === null) {
-          <div class="px-4"><app-skeleton-grid [count]="4" /></div>
-        } @else {
-          <app-rail [label]="tabs[tab()].label">
-            @for (p of tabItems(); track p.id; let i = $index) {
-              <div class="pk-railcard" [appReveal]="i"><app-product-card [product]="p" /></div>
-            }
-          </app-rail>
-        }
-      </div>
-      <div class="mx-auto mt-6 max-w-7xl px-4">
-        <a class="pk-btn pk-btn--quiet" routerLink="/products" [queryParams]="{ sort: tabs[tab()].sort }">Shop all {{ tabs[tab()].label.toLowerCase() }}</a>
-      </div>
-    </section>
-
-    <!-- 5. Who's on sale (pink gradient band) -->
-    @if (overview(); as ov) {
-      <section class="pk-band-pink mt-14 py-12 sm:mt-20 sm:py-16" aria-labelledby="on-sale">
+    <!-- 5. Offers running now + combo deals -->
+    @if (offers(); as o) {
+      <section class="pk-band-amber mt-14 py-12 sm:mt-20 sm:py-16" aria-labelledby="offers">
         <div class="mx-auto mb-5 flex max-w-7xl items-end justify-between gap-4 px-4">
           <div>
-            <h2 id="on-sale" class="t-display-lg">Who's on sale right now</h2>
-            <p class="t-small mt-2 text-charcoal">{{ storesOnSale() }} of {{ ov.stores.length }} stores are running a sale.</p>
+            <h2 id="offers" class="t-display-lg">Offers running now</h2>
+            <p class="t-small mt-2 text-charcoal">Read from each restaurant's ordering site{{ lastChecked() ? ' ' + (lastChecked() | timeAgo) : '' }}.</p>
           </div>
-          <a routerLink="/sales" class="pk-link shrink-0">All sales</a>
+          <a routerLink="/deals" class="pk-link shrink-0">All deals</a>
         </div>
-        <div class="mx-auto max-w-7xl">
-          <app-rail label="Stores on sale">
-            @for (s of ov.stores; track s.id; let i = $index) {
-              <a class="pk-storecard" [class.pk-storecard--quiet]="!s.on_sale" [appReveal]="i" [routerLink]="['/sales']" [queryParams]="{ store: s.slug }">
-                <span>
-                  <span class="block font-sans text-[15px] font-bold text-blue">{{ s.name }}</span>
-                  <span class="t-small block">{{ s.on_sale ? (s.on_sale | number) + ' of ' + (s.total_products | number) + ' items' : 'Checked ' + (s.last_scraped_at | timeAgo) }}</span>
-                </span>
-                <span>
-                  @if (s.on_sale) {
-                    <span class="pk-storecard__pct block">−{{ s.max_discount | number: '1.0-0' }}%</span>
-                    <span class="t-small block">max discount · avg {{ s.avg_discount | number: '1.0-0' }}%</span>
-                  } @else {
-                    <span class="pk-storecard__pct block">No sale</span>
-                  }
-                  <span class="pk-storetag__meter block"><span [style.width.%]="s.sale_share"></span></span>
-                </span>
-              </a>
+        @if (o.restaurant_offers.length) {
+          <div class="mx-auto max-w-7xl">
+            <app-rail label="Restaurant offers">
+              @for (ro of o.restaurant_offers; track ro.restaurant.id + ro.offer.id; let i = $index) {
+                <a class="pk-storecard" [appReveal]="i" [routerLink]="['/restaurants', ro.restaurant.slug]">
+                  <span>
+                    <span class="block font-sans text-[15px] font-bold text-sage">{{ ro.restaurant.name }}</span>
+                    <span class="t-small block">{{ ro.offer.detail }}</span>
+                  </span>
+                  <span>
+                    <span class="pk-storecard__pct block">{{ ro.offer.percent ? '−' + (ro.offer.percent | number: '1.0-0') + '%' : ro.offer.title }}</span>
+                    @if (ro.offer.channels?.length) {
+                      <span class="t-small block">{{ ro.offer.channels!.join(' & ') }}</span>
+                    }
+                  </span>
+                </a>
+              }
+            </app-rail>
+          </div>
+        }
+        <div class="mx-auto mt-8 max-w-7xl">
+          <h3 class="t-heading mb-4 px-4">Combo deals, best value first</h3>
+          <app-rail label="Combo deals">
+            @for (p of o.deal_items.slice(0, 12); track p.id; let i = $index) {
+              <div class="pk-railcard" [appReveal]="i"><app-product-card [product]="p" /></div>
             }
           </app-rail>
         </div>
       </section>
+    } @else {
+      <div class="mx-auto mt-14 max-w-7xl px-4"><app-skeleton-grid [count]="4" /></div>
     }
 
-    <!-- 6. How Parakh checks prices (graph paper, floating prints) -->
-    <section #story class="pk-graph relative overflow-hidden py-14 sm:py-20" aria-labelledby="how">
+    <!-- 6. Real reviews: photos and videos from diners, then Google reviews -->
+    <section class="mx-auto mt-14 max-w-7xl px-4 sm:mt-20" aria-labelledby="reviews">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 id="reviews" class="t-display-lg">What it actually looks like</h2>
+          <p class="t-small mt-2 max-w-[52ch]">Photos and videos from people who ate there, next to the menu price. Google reviews are marked as such.</p>
+        </div>
+        <a routerLink="/restaurants" class="pk-btn pk-btn--primary pk-btn--sm">Post a review</a>
+      </div>
+      @if (mediaReviews().length) {
+        <div class="pk-wall">
+          @for (r of mediaReviews(); track r.id; let i = $index) {
+            <a class="pk-wall__item" [appReveal]="i % 8" [routerLink]="['/restaurants', r.restaurant_slug]" [fragment]="'review-' + r.id">
+              @if (r.media[0].type === 'video') {
+                <video [src]="api.mediaUrl(r.media[0].url)" muted loop playsinline preload="metadata" [style.aspect-ratio]="wallRatio(i)" class="object-cover" (mouseenter)="play($event)" (mouseleave)="stop($event)"></video>
+                <span class="pk-sticker">▶ Video</span>
+              } @else {
+                <img [src]="api.mediaUrl(r.media[0].url)" [alt]="'Photo of ' + (r.dish_name || r.restaurant_name)" loading="lazy" [style.aspect-ratio]="wallRatio(i)" class="object-cover" />
+              }
+              <span class="pk-wall__cap">
+                <b>{{ '★'.repeat(round(r.rating)) }}</b>
+                <span>{{ r.restaurant_name }}{{ r.dish_name ? ' · ' + r.dish_name : '' }}</span>
+              </span>
+            </a>
+          }
+        </div>
+      } @else if (textReviews().length) {
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          @for (r of textReviews(); track r.id; let i = $index) {
+            <app-review-card [review]="r" [showRestaurant]="true" [appReveal]="i" />
+          }
+        </div>
+      } @else {
+        <div class="pk-panel p-6 text-center">
+          <p class="t-heading">No photo reviews yet</p>
+          <p class="t-small mt-2">Be the first: open a restaurant, rate a dish and add a photo or a short video.</p>
+        </div>
+      }
+    </section>
+
+    <!-- 7. How the comparison works (graph paper, floating dish prints) -->
+    <section #story class="pk-graph relative mt-14 overflow-hidden py-14 sm:mt-20 sm:py-20" aria-labelledby="how">
       <div class="relative z-[1] mx-auto grid max-w-7xl gap-10 px-4 lg:grid-cols-2">
         <div>
-          <h2 id="how" class="t-display-lg max-w-[16ch]">We check the price so you don't have to.</h2>
+          <h2 id="how" class="t-display-lg max-w-[16ch]">Fair comparisons, plate for plate.</h2>
           <ol class="mt-8 space-y-5">
             @for (step of steps; track step.title; let i = $index) {
               <li class="flex gap-4" [appReveal]="i">
-                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue font-mono text-sm font-semibold text-on-blue">{{ i + 1 }}</span>
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sage font-mono text-sm font-semibold text-on-sage">{{ i + 1 }}</span>
                 <span>
                   <span class="t-heading block text-[19px]">{{ step.title }}</span>
                   <span class="t-small mt-1 block text-charcoal">{{ step.body }}</span>
@@ -276,126 +367,174 @@ const SLIDE_MS = 6500;
               </li>
             }
           </ol>
-          @if (overview(); as ov) {
+          @if (restaurants().length) {
             <div appReveal class="pk-print mt-8 max-w-md">
               <dl class="pk-receipt">
-                <div><dt>Products tracked</dt><span class="pk-leader"></span><dd [appCountUp]="ov.total_products"></dd></div>
-                <div><dt>On sale now</dt><span class="pk-leader"></span><dd class="is-sale" [appCountUp]="ov.total_on_sale"></dd></div>
-                <div><dt>Avg. discount</dt><span class="pk-leader"></span><dd [appCountUp]="ov.average_discount" suffix="%"></dd></div>
-                <div><dt>Stores checked</dt><span class="pk-leader"></span><dd [appCountUp]="ov.stores.length"></dd></div>
+                <div><dt>Dishes on our menus</dt><span class="pk-leader"></span><dd [appCountUp]="dishCount()"></dd></div>
+                <div><dt>Restaurants</dt><span class="pk-leader"></span><dd [appCountUp]="restaurants().length"></dd></div>
+                <div><dt>Offers running</dt><span class="pk-leader"></span><dd class="is-sale" [appCountUp]="offers()?.restaurant_offers?.length ?? 0"></dd></div>
+                <div><dt>Cities</dt><span class="pk-leader"></span><dd [appCountUp]="cityCount()"></dd></div>
               </dl>
             </div>
           }
         </div>
         <div class="relative hidden h-[460px] lg:block" aria-hidden="true">
-          @for (p of floatPicks(); track p.id; let i = $index) {
+          @for (img of floatPicks(); track $index; let i = $index) {
             <div class="pk-float" [style]="floatStyle(i)">
-              <img [src]="p.image_url" alt="" loading="lazy" />
+              <img [src]="img" alt="" loading="lazy" />
             </div>
           }
         </div>
       </div>
     </section>
 
-    <!-- 7. Fresh price drops -->
-    @if (overview()?.recent_price_drops?.length) {
-      <section class="mx-auto mt-14 max-w-7xl px-4" aria-labelledby="drops">
-        <div class="mb-5 flex items-end justify-between gap-4">
-          <h2 id="drops" class="t-display-lg">Fresh price drops</h2>
-          <a routerLink="/sales" [queryParams]="{ tab: 'drops' }" class="pk-link shrink-0">All drops</a>
+    <!-- 8. For restaurants: the banner slot is for sale -->
+    <section id="advertise" class="mx-auto mt-14 max-w-7xl px-4" aria-labelledby="for-restaurants">
+      <div class="pk-panel pk-panel--sage grid gap-6 p-6 sm:grid-cols-[1.2fr_1fr] sm:p-10">
+        <div>
+          <p class="t-label text-amber-ink">For restaurants</p>
+          <h2 id="for-restaurants" class="t-display-lg mt-2 max-w-[18ch]">Put your dish in the top banner.</h2>
+          <p class="mt-3 max-w-[48ch] text-[16px] text-charcoal">
+            The first slides on this page are paid placements for restaurants and cafés. They are always labelled
+            <b>Sponsored</b>, sit beside honest price comparisons, and never change how dishes are ranked.
+          </p>
         </div>
-        <ul class="pk-ledger max-w-3xl">
-          @for (d of overview()!.recent_price_drops.slice(0, 6); track d.product.id; let i = $index) {
-            <li [appReveal]="i">
-              <a class="pk-drop" [routerLink]="['/products', d.product.id]">
-                <span class="pk-drop__pct">−{{ d.drop_percentage | number: '1.0-0' }}%</span>
-                <span class="min-w-0">
-                  <span class="pk-drop__name">{{ d.product.product_name }}</span>
-                  <span class="pk-drop__store">{{ d.product.store_name }} · {{ d.detected_at | timeAgo }}</span>
-                </span>
-                <span class="pk-drop__prices">
-                  <app-odometer class="pk-price__now block" [value]="d.new_price" />
-                  <span class="pk-price__was"><span class="sr-only">was </span>{{ d.old_price | pkr }}</span>
-                </span>
-              </a>
-            </li>
+        <ul class="space-y-3 self-center text-[15px]">
+          @for (point of adPoints; track point) {
+            <li class="flex gap-3"><span class="pk-tick" aria-hidden="true"></span>{{ point }}</li>
           }
         </ul>
-      </section>
-    }
-
-    <!-- 8. Deal wall (masonry) -->
-    @if (wallPicks().length) {
-      <section class="pk-band-blue mt-14 py-12 sm:mt-20 sm:py-16" aria-labelledby="wall">
-        <div class="mx-auto max-w-7xl px-4">
-          <div class="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <h2 id="wall" class="t-display-lg">Marked down today</h2>
-              <p class="t-small mt-2 text-charcoal">The deepest cuts we found this morning, from every store.</p>
-            </div>
-            <a routerLink="/sales" class="pk-link shrink-0">See all</a>
-          </div>
-          <div class="pk-wall">
-            @for (p of wallPicks(); track p.id; let i = $index) {
-              <a class="pk-wall__item" [appReveal]="i % 8" [routerLink]="['/products', p.id]" [style.view-transition-name]="'product-' + p.id">
-                <img [src]="p.image_url" [alt]="p.product_name" loading="lazy" [style.aspect-ratio]="wallRatio(i)" class="object-cover" />
-                <span class="pk-sticker">−{{ p.discount_percentage | number: '1.0-0' }}%</span>
-                <span class="pk-wall__cap">
-                  <b>{{ p.price | pkr }}</b>
-                  <span>{{ p.store_name }} · {{ p.product_name }}</span>
-                </span>
-              </a>
-            }
-          </div>
-        </div>
-      </section>
-    }
+      </div>
+    </section>
   `,
 })
 export class HomePage implements AfterViewInit, OnDestroy {
-  private api = inject(ApiService);
+  protected api = inject(ApiService);
   private router = inject(Router);
   private motion = inject(Motion);
   private zone = inject(NgZone);
   protected query = '';
   protected readonly slideMs = SLIDE_MS;
+  protected readonly round = Math.round;
 
-  protected readonly overview = signal<SalesOverview | null>(null);
-  protected readonly tiles = signal<Tile[]>([]);
-  protected readonly depts = signal<Dept[]>([]);
-  protected readonly tab = signal(0);
-  private readonly tabCache = signal<Record<number, Product[]>>({});
-  protected readonly tabItems = computed(() => this.tabCache()[this.tab()] ?? null);
-
-  protected readonly examples = ['Lawn suits on sale', 'Earbuds under 5000', 'Perfume for men'];
-  protected readonly tabs: { key: string; label: string; sort: SortOption }[] = [
-    { key: 'value', label: 'Best value', sort: 'value' },
-    { key: 'discount', label: 'Biggest discounts', sort: 'discount' },
-    { key: 'newest', label: 'Just added', sort: 'newest' },
+  protected readonly examples = ['Chicken tikka under 800', 'Burger deals', 'Mutton karahi half'];
+  protected readonly checks: DishCheck[] = [
+    { label: 'Chicken tikka', q: 'chicken tikka', category: 'tikka', unit: false, note: 'One piece, leg or chest, as each menu lists it. Cheapest per restaurant.' },
+    { label: 'Zinger', q: 'zinger', category: 'burger', unit: false, note: 'The classic zinger, single, without the meal.' },
+    { label: 'Biryani', q: 'chicken biryani', category: 'biryani', unit: false, note: 'Chicken biryani, the smallest plate each restaurant sells.' },
+    { label: 'Large pizza', q: 'large pizza', category: 'pizza', unit: false, note: 'Each restaurant\'s cheapest large pizza. Sizes vary a little; open a pizza to see price per square inch where the menu gives one.' },
   ];
   protected readonly steps = [
-    { title: 'We read every store, every few hours', body: 'Prices, discounts and stock from each store, straight from their own catalogues.' },
-    { title: 'We match the same item across stores', body: 'So you see who sells it cheapest, not just who shouts loudest.' },
-    { title: 'We check if a sale is real', body: 'Price history shows whether a "50% off" is actually lower than last week.' },
+    { title: "We read each restaurant's own menu", body: 'Prices, sizes and running offers come from their ordering sites, refreshed every few hours.' },
+    { title: 'We match the same dish', body: 'Chicken tikka with chicken tikka, half karahi with half karahi: never a tikka pizza or a full plate.' },
+    { title: 'We compare per piece, per person, per inch', body: 'When portions differ, we show what each piece or slice really costs.' },
+    { title: 'Real people show the real plate', body: 'Diners post photos and videos with their reviews; Google ratings sit alongside.' },
+  ];
+  protected readonly adPoints = [
+    'Your banner on the first screen of the home page, on phones and desktop',
+    'Links straight to your menu and running offers on Parakh',
+    'Clicks are counted for you; rankings and prices are never for sale',
   ];
 
-  protected readonly storeCount = computed(() => this.overview()?.stores.length ?? 0);
-  protected readonly storesOnSale = computed(() => this.overview()?.stores.filter((s) => s.on_sale > 0).length ?? 0);
+  protected readonly restaurants = signal<Restaurant[]>([]);
+  protected readonly offers = signal<OffersResponse | null>(null);
+  private readonly banners = signal<Banner[]>([]);
+  protected readonly tiles = signal<Tile[]>([]);
+  private readonly reviews = signal<Review[]>([]);
+  private readonly mediaWall = signal<Review[]>([]);
+  protected readonly mediaReviews = computed(() => this.mediaWall().filter((r) => r.media.length));
+  protected readonly textReviews = computed(() => this.reviews().filter((r) => r.text).slice(0, 6));
+
+  protected readonly tab = signal(0);
+  private readonly ledgerCache = signal<Record<number, LedgerRow[]>>({});
+  protected readonly ledger = computed(() => this.ledgerCache()[this.tab()] ?? null);
+  protected readonly spread = computed(() => {
+    const rows = this.ledger();
+    if (!rows || rows.length < 2) return null;
+    const vals = rows.map((r) => r.value);
+    return Math.max(...vals) - Math.min(...vals);
+  });
+  protected readonly heroPicks = computed(() => (this.ledgerCache()[0] ?? []).slice(0, 2).map((r) => r.product));
+
+  protected readonly dishCount = computed(() => this.restaurants().reduce((n, r) => n + r.menu_items, 0));
+  protected readonly cityCount = computed(() => new Set(this.restaurants().flatMap((r) => r.cities)).size);
   protected readonly lastChecked = computed(() => {
-    const t = (this.overview()?.stores ?? []).map((s) => s.last_scraped_at).filter((x): x is string => !!x);
+    const t = this.restaurants().map((r) => r.last_scraped_at).filter((x): x is string => !!x);
     return t.length ? [...t].sort().at(-1)! : null;
   });
-  private readonly withImages = computed(() => (this.overview()?.top_deals ?? []).filter((p) => p.image_url));
-  protected readonly heroPicks = computed(() => this.withImages().slice(0, 3));
-  protected readonly topStore = computed<StoreSummary | null>(() => {
-    const s = [...(this.overview()?.stores ?? [])].filter((x) => x.on_sale > 0).sort((a, b) => b.max_discount - a.max_discount);
-    return s[0] ?? null;
+  private readonly dishImages = computed(() =>
+    this.tiles()
+      .map((t) => t.image)
+      .filter((x): x is string => !!x),
+  );
+  protected readonly floatPicks = computed(() => this.dishImages().slice(3, 6));
+
+  /** Slides: hero, then paid banners, then featured/offer slides, then the ad slot. */
+  protected readonly slides = computed<Slide[]>(() => {
+    const rests = new Map(this.restaurants().map((r) => [r.slug, r]));
+    const imagesFor = (slug: string | null): string[] => {
+      const r = slug ? rests.get(slug) : null;
+      return r?.cover_image ? [r.cover_image] : [];
+    };
+    const out: Slide[] = [
+      {
+        kind: 'hero',
+        tone: 'ink',
+        eyebrow: '',
+        title: '',
+        subtitle: `${this.dishCount().toLocaleString('en-PK') || 'Thousands of'} dishes from ${this.restaurants().length || 'top'} Pakistani restaurants, compared portion for portion.`,
+        cta: '',
+        link: null,
+        href: null,
+        bannerId: null,
+        images: this.dishImages().slice(0, 3),
+      },
+    ];
+    for (const b of this.banners().slice(0, 3)) {
+      out.push({
+        kind: b.kind,
+        tone: b.kind === 'sponsored' ? 'amber' : 'paper',
+        eyebrow: b.eyebrow || b.restaurant_name || '',
+        title: b.title,
+        subtitle: b.subtitle || '',
+        cta: b.cta_label,
+        link: b.link_url ? null : b.restaurant_slug ? ['/restaurants', b.restaurant_slug] : null,
+        href: b.link_url,
+        bannerId: b.id,
+        images: b.image_url ? [b.image_url] : imagesFor(b.restaurant_slug),
+      });
+    }
+    if (!this.banners().length) {
+      // No paid banners yet: show the biggest real offers, clearly as offers (not ads).
+      for (const ro of (this.offers()?.restaurant_offers ?? []).slice(0, 2)) {
+        out.push({
+          kind: 'offer',
+          tone: out.length % 2 ? 'amber' : 'paper',
+          eyebrow: 'Offer running now',
+          title: `${ro.offer.title} at ${ro.restaurant.name}`,
+          subtitle: `${ro.offer.detail || 'On the menu'}. Read from ${ro.restaurant.name}'s own ordering site.`,
+          cta: `See ${ro.restaurant.name}'s menu`,
+          link: ['/restaurants', ro.restaurant.slug],
+          href: null,
+          bannerId: null,
+          images: imagesFor(ro.restaurant.slug),
+        });
+      }
+    }
+    out.push({
+      kind: 'advertise',
+      tone: 'paper',
+      eyebrow: 'Banner slot',
+      title: 'Your restaurant could be here.',
+      subtitle: 'Restaurants and cafés can feature a dish or a deal in this banner. Sponsored slides are always labelled.',
+      cta: 'How banner ads work',
+      link: ['/'],
+      href: null,
+      bannerId: null,
+      images: this.dishImages().slice(6, 9),
+    });
+    return out;
   });
-  private readonly storeDeals = signal<Product[]>([]);
-  protected readonly storePicks = computed(() => (this.storeDeals().length ? this.storeDeals() : this.withImages()).slice(0, 3));
-  private readonly wall = signal<Product[]>([]);
-  protected readonly wallPicks = computed(() => this.wall());
-  protected readonly floatPicks = computed(() => this.wall().slice(4, 7));
 
   // ---- slider state ----
   protected readonly slide = signal(0);
@@ -411,75 +550,75 @@ export class HomePage implements AfterViewInit, OnDestroy {
 
   constructor() {
     this.api
-      .sales()
-      .pipe(catchError(() => of(null)))
-      .subscribe((ov) => this.overview.set(ov));
+      .restaurants()
+      .pipe(catchError(() => of([] as Restaurant[])))
+      .subscribe((r) => this.restaurants.set(r));
     this.api
-      .deals({ page_size: 16, sort: 'discount' as never })
-      .pipe(catchError(() => of({ items: [] as Product[] })))
-      .subscribe((d) => this.wall.set(d.items.filter((p) => p.image_url).slice(0, 12)));
+      .offers(undefined, 16)
+      .pipe(catchError(() => of(null)))
+      .subscribe((o) => this.offers.set(o));
+    this.api
+      .banners()
+      .pipe(catchError(() => of([] as Banner[])))
+      .subscribe((b) => this.banners.set(b));
+    this.api
+      .reviews({ with_media: true, limit: 12 })
+      .pipe(catchError(() => of([] as Review[])))
+      .subscribe((r) => this.mediaWall.set(r));
+    this.api
+      .reviews({ limit: 9 })
+      .pipe(catchError(() => of([] as Review[])))
+      .subscribe((r) => this.reviews.set(r));
 
-    const categories = [
-      { key: 'kurta', label: 'Kurtas' },
-      { key: 'suit', label: 'Lawn and suits' },
-      { key: 'sneakers', label: 'Sneakers' },
-      { key: 'earbuds', label: 'Earbuds' },
-      { key: 'smartwatch', label: 'Smartwatches' },
-      { key: 'fragrance', label: 'Fragrance' },
-      { key: 'heels', label: 'Heels' },
-      { key: 't-shirt', label: 'T-shirts' },
-      { key: 'speaker', label: 'Speakers' },
-      { key: 'bedding', label: 'Bedding' },
-    ];
-    this.tiles.set(categories.map((c) => ({ ...c, image: null })));
+    this.tiles.set(HEADLINE_DISHES.map((key) => ({ key, label: dishLabel(key), image: null, count: null })));
     forkJoin(
-      categories.map((c) =>
-        this.api.products({ category: c.key, sort: 'value', page_size: 1 }).pipe(
-          map((r) => r.items[0]?.image_url ?? null),
-          catchError(() => of(null)),
-        ),
-      ),
-    ).subscribe((imgs) => this.tiles.set(categories.map((c, i) => ({ ...c, image: imgs[i] }))));
-
-    const departments = [
-      { key: 'fashion', label: 'Fashion', blurb: 'Kurtas, lawn, western, shoes' },
-      { key: 'electronics', label: 'Electronics', blurb: 'Phones, audio, gadgets' },
-      { key: 'beauty', label: 'Beauty', blurb: 'Fragrance, skin and hair' },
-      { key: 'home', label: 'Home', blurb: 'Bedding, kitchen, décor' },
-    ];
-    this.depts.set(departments.map((d) => ({ ...d, image: null, count: null })));
-    forkJoin(
-      departments.map((d) =>
-        this.api.products({ vertical: d.key, sort: 'discount', page_size: 1 }).pipe(
-          map((r) => ({ image: r.items[0]?.image_url ?? null, count: r.total })),
+      HEADLINE_DISHES.map((key) =>
+        this.api.products({ category: key, page_size: 24 }).pipe(
+          map((r) => ({ image: r.items.find((p) => p.image_url)?.image_url ?? null, count: r.total })),
           catchError(() => of({ image: null, count: null })),
         ),
       ),
-    ).subscribe((res) => this.depts.set(departments.map((d, i) => ({ ...d, ...res[i] }))));
+    ).subscribe((res) => this.tiles.set(HEADLINE_DISHES.map((key, i) => ({ key, label: dishLabel(key), ...res[i] }))));
 
-    // Tabs load lazily, once each.
+    // Ledger tabs load lazily, once each.
     effect(() => {
       const i = this.tab();
-      if (this.tabCache()[i]) return;
+      if (this.ledgerCache()[i]) return;
+      const c = this.checks[i];
       this.api
-        .products({ sort: this.tabs[i].sort, page_size: 12, on_sale: i !== 2 })
+        .search(c.q, { category: c.category, page_size: 100 })
         .pipe(catchError(() => of({ items: [] as Product[] })))
-        .subscribe((r) => this.tabCache.update((c) => ({ ...c, [i]: r.items })));
+        .subscribe((r) => this.ledgerCache.update((cache) => ({ ...cache, [i]: this.cheapestPerRestaurant(r.items, c) })));
     });
-    // Biggest-sale slide shows that store's own deals.
-    effect(() => {
-      const st = this.topStore();
-      if (!st) return;
-      this.api
-        .deals({ store: [st.slug], page_size: 6 })
-        .pipe(catchError(() => of({ items: [] as Product[] })))
-        .subscribe((d) => this.storeDeals.set(d.items.filter((p) => p.image_url)));
-    });
-    // Keep the tab pill under the selected tab.
     effect(() => {
       const btn = this.tabBtns()[this.tab()]?.nativeElement;
       if (btn) this.pill.set({ x: btn.offsetLeft - 4, w: btn.offsetWidth });
     });
+    // Keep the active slide in range as banners/offers arrive.
+    effect(() => {
+      const n = this.slides().length;
+      if (this.slide() >= n) this.slide.set(0);
+    });
+  }
+
+  private cheapestPerRestaurant(items: Product[], c: DishCheck): LedgerRow[] {
+    const best = new Map<string, { product: Product; value: number }>();
+    for (const p of items) {
+      if (!p.in_stock) continue;
+      if (c.category === 'tikka' && p.protein && p.protein !== 'chicken') continue;
+      if (c.category === 'biryani' && p.protein && p.protein !== 'chicken') continue;
+      if (c.category === 'burger' && !/zinger/i.test(p.product_name)) continue;
+      if (c.category === 'pizza' && !/large/i.test(`${p.product_name} ${p.portion ?? ''}`)) continue;
+      if (/meal|deal|combo|platter|family|pack|\bx\s?\d/i.test(p.product_name)) continue; // single plates only
+      const value = c.unit ? (p.unit_label === 'per 100 sq in' ? p.unit_price : null) : p.price;
+      if (!value) continue;
+      const key = p.store_slug || p.store_name || String(p.store_id);
+      const prev = best.get(key);
+      if (!prev || value < prev.value) best.set(key, { product: p, value });
+    }
+    const rows = [...best.values()].sort((a, b) => a.value - b.value).slice(0, 8);
+    const max = Math.max(...rows.map((r) => r.value), 1);
+    return rows.map((r) => ({ ...r, share: r.value / max }));
   }
 
   ngAfterViewInit(): void {
@@ -489,7 +628,6 @@ export class HomePage implements AfterViewInit, OnDestroy {
     });
     this.schedule();
     document.addEventListener('visibilitychange', this.onVisibility);
-    // Floating prints drift at different depths as the story block scrolls past.
     if (!this.motion.reduced()) {
       this.stopScroll = this.motion.onScroll(() => {
         const el = this.story()?.nativeElement;
@@ -517,7 +655,7 @@ export class HomePage implements AfterViewInit, OnDestroy {
   }
 
   go(i: number): void {
-    const n = 3;
+    const n = this.slides().length;
     this.slide.set(((i % n) + n) % n);
     this.schedule();
   }
@@ -539,6 +677,13 @@ export class HomePage implements AfterViewInit, OnDestroy {
     if (Math.abs(dx) > 50) this.go(this.slide() + (dx < 0 ? 1 : -1));
   }
 
+  clicked(s: Slide): void {
+    if (s.kind === 'advertise') {
+      document.getElementById('advertise')?.scrollIntoView({ behavior: this.motion.reduced() ? 'auto' : 'smooth' });
+    }
+    if (s.bannerId) this.api.bannerClick(s.bannerId).pipe(catchError(() => of(null))).subscribe();
+  }
+
   // ---- layout helpers ----
   printStyle(i: number): string {
     const spots = [
@@ -547,6 +692,10 @@ export class HomePage implements AfterViewInit, OnDestroy {
       'left:22%;top:38%;width:40%;height:58%;transform:rotate(-1deg);z-index:3',
     ];
     return spots[i] ?? '';
+  }
+
+  chipStyle(i: number): string {
+    return ['left:2%;top:74%;z-index:4', 'left:58%;top:62%;z-index:4'][i] ?? '';
   }
 
   floatStyle(i: number): string {
@@ -564,8 +713,16 @@ export class HomePage implements AfterViewInit, OnDestroy {
     return ['4 / 5', '1 / 1', '3 / 4', '4 / 5', '1 / 1.25', '1 / 1'][i % 6];
   }
 
+  play(e: Event): void {
+    if (!this.motion.reduced()) (e.target as HTMLVideoElement).play().catch(() => undefined);
+  }
+
+  stop(e: Event): void {
+    (e.target as HTMLVideoElement).pause();
+  }
+
   search(): void {
     const q = this.query.trim();
-    this.router.navigate(['/products'], { queryParams: q ? { q } : {} });
+    this.router.navigate(['/dishes'], { queryParams: q ? { q } : {} });
   }
 }

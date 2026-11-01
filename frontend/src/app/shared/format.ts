@@ -13,13 +13,66 @@ export class PkrPipe implements PipeTransform {
   }
 }
 
+/** Dish names as diners say them (mirrors the backend's CATEGORY_LABELS). */
+export const DISH_LABELS: Record<string, string> = {
+  deal: 'Deals & platters',
+  'add-on': 'Extras & sauces',
+  rice: 'Rice bowls',
+  shake: 'Shakes',
+  'chai-coffee': 'Chai & coffee',
+  drink: 'Drinks',
+  'ice-cream': 'Ice cream',
+  dessert: 'Desserts',
+  pizza: 'Pizza',
+  shawarma: 'Shawarma',
+  'roll-wrap': 'Rolls & wraps',
+  burger: 'Burgers',
+  sandwich: 'Sandwiches',
+  tikka: 'Tikka',
+  boti: 'Boti',
+  kabab: 'Kababs',
+  sajji: 'Sajji',
+  chargha: 'Chargha',
+  mandi: 'Mandi',
+  'bbq-platter': 'BBQ',
+  karahi: 'Karahi',
+  handi: 'Handi',
+  nihari: 'Nihari',
+  haleem: 'Haleem',
+  qorma: 'Qorma & curries',
+  'daal-veg': 'Daal & sabzi',
+  biryani: 'Biryani',
+  pulao: 'Pulao',
+  chinese: 'Chinese',
+  soup: 'Soups',
+  wings: 'Wings',
+  'fried-chicken': 'Fried chicken',
+  fries: 'Fries & sides',
+  pasta: 'Pasta',
+  steak: 'Steaks',
+  seafood: 'Fish & seafood',
+  bread: 'Naan & roti',
+  salad: 'Salads',
+  starter: 'Starters',
+  breakfast: 'Breakfast',
+  other: 'Other',
+};
+
+/** The dishes people compare most, in the order the home page shows them. */
+export const HEADLINE_DISHES = ['tikka', 'karahi', 'biryani', 'burger', 'pizza', 'boti', 'kabab', 'roll-wrap', 'fried-chicken', 'deal', 'shake', 'dessert'];
+
+export function dishLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  if (DISH_LABELS[value]) return DISH_LABELS[value];
+  const text = value.replace(/-/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 @Pipe({ name: 'label' })
 export class LabelPipe implements PipeTransform {
-  /** "t-shirt" -> "T-shirt", "power-bank" -> "Power bank" */
+  /** "roll-wrap" -> "Rolls & wraps", "chicken" -> "Chicken" */
   transform(value: string | null | undefined): string {
-    if (!value) return '';
-    const text = value === 't-shirt' ? 't-shirt' : value.replace(/-/g, ' ');
-    return text.charAt(0).toUpperCase() + text.slice(1);
+    return dishLabel(value);
   }
 }
 

@@ -23,8 +23,8 @@ import { ProductImage } from './shared/product-image';
           <span class="pk-wordmark__urdu" lang="ur" dir="rtl">پرکھ</span>
         </a>
         <form (ngSubmit)="headerSearch()" class="pk-search pk-search--sm mx-auto hidden w-full max-w-md lg:flex" role="search">
-          <label for="hdr-q" class="sr-only">Search products</label>
-          <input id="hdr-q" [(ngModel)]="headerQuery" name="hq" placeholder="What are you looking for?" autocomplete="off" />
+          <label for="hdr-q" class="sr-only">Search dishes and restaurants</label>
+          <input id="hdr-q" [(ngModel)]="headerQuery" name="hq" placeholder="Chicken tikka, karahi, zinger…" autocomplete="off" />
           <button type="submit" aria-label="Search">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
           </button>
@@ -37,7 +37,7 @@ import { ProductImage } from './shared/product-image';
             {{ auth.isLoggedIn() ? 'My list' : 'Sign in' }}
           </a>
         </nav>
-        <a routerLink="/products" class="pk-hdr-icon ml-auto grid h-10 w-10 place-items-center text-blue sm:hidden" aria-label="Search products">
+        <a routerLink="/dishes" class="pk-hdr-icon ml-auto grid h-10 w-10 place-items-center text-sage sm:hidden" aria-label="Search dishes">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
         </a>
       </div>
@@ -59,11 +59,11 @@ import { ProductImage } from './shared/product-image';
           </div>
           <p class="t-small min-w-0 flex-1 text-charcoal">
             <span class="pk-tray__count">{{ tray.count() }}</span>
-            selected<span class="hidden sm:inline"> · from <b class="font-mono text-blue">{{ cheapest() | pkr }}</b></span>
+            dishes<span class="hidden sm:inline"> · from <b class="font-mono text-sage">{{ cheapest() | pkr }}</b></span>
           </p>
           <button type="button" class="pk-link hidden sm:block" (click)="tray.clear()">Clear</button>
           @if (tray.count() >= 2) {
-            <a routerLink="/compare" class="pk-btn pk-btn--primary pk-btn--sm">Compare {{ tray.count() }} items</a>
+            <a routerLink="/compare" class="pk-btn pk-btn--primary pk-btn--sm">Compare {{ tray.count() }} dishes</a>
           } @else {
             <span class="pk-btn pk-btn--primary pk-btn--sm" aria-disabled="true">Add 1 more to compare</span>
           }
@@ -75,19 +75,20 @@ import { ProductImage } from './shared/product-image';
       <div class="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <a routerLink="/" class="pk-wordmark" aria-label="Parakh home">
-            <span class="pk-wordmark__latin !text-on-blue">Parakh</span>
-            <span class="pk-wordmark__urdu !text-bubblegum" lang="ur" dir="rtl">پرکھ</span>
+            <span class="pk-wordmark__latin !text-on-sage">Parakh</span>
+            <span class="pk-wordmark__urdu !text-amber" lang="ur" dir="rtl">پرکھ</span>
           </a>
-          <p class="mt-3 max-w-sm text-[15px]">We check prices across Pakistani stores every few hours, so you can buy at the right price.</p>
+          <p class="mt-3 max-w-sm text-[15px]">We read restaurant menus every few hours and compare the same dish, portion for portion, so you know where it's worth ordering.</p>
         </div>
         <nav class="flex flex-col gap-2 text-[15px]" aria-label="Footer">
-          <a routerLink="/products" class="hover:text-bubblegum">Browse</a>
-          <a routerLink="/compare" class="hover:text-bubblegum">Compare</a>
-          <a routerLink="/sales" class="hover:text-bubblegum">Sales</a>
-          <a routerLink="/assistant" class="hover:text-bubblegum">Assistant</a>
-          <a routerLink="/account" class="hover:text-bubblegum">My list</a>
+          <a routerLink="/dishes" class="hover:text-amber">Dishes</a>
+          <a routerLink="/restaurants" class="hover:text-amber">Restaurants</a>
+          <a routerLink="/compare" class="hover:text-amber">Compare</a>
+          <a routerLink="/deals" class="hover:text-amber">Deals & offers</a>
+          <a routerLink="/assistant" class="hover:text-amber">Assistant</a>
+          <a routerLink="/account" class="hover:text-amber">My list</a>
         </nav>
-        <p class="text-[13px] opacity-80">Always confirm the price on the store's site before you buy. Store names belong to their owners.</p>
+        <p class="text-[13px] opacity-80">Menu prices are read from each restaurant's own ordering site; confirm before you order. Ratings marked Google come from Google. Restaurant names belong to their owners.</p>
       </div>
     </footer>
 
@@ -112,17 +113,18 @@ export class App {
   protected readonly onComparePage = signal(false);
   protected readonly links = [
     { path: '/', label: 'Home' },
-    { path: '/products', label: 'Browse' },
+    { path: '/dishes', label: 'Dishes' },
+    { path: '/restaurants', label: 'Restaurants' },
     { path: '/compare', label: 'Compare' },
-    { path: '/sales', label: 'Sales' },
+    { path: '/deals', label: 'Deals' },
     { path: '/assistant', label: 'Assistant' },
   ];
   // Phosphor-style outline glyphs: 24px grid, 1.75 stroke, square caps.
   protected readonly tabs = [
     { path: '/', label: 'Home', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
-    { path: '/products', label: 'Browse', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+    { path: '/dishes', label: 'Dishes', icon: 'M3 13h18M5 13a7 7 0 0 1 14 0M12 6V4M4 17h16l-2 3H6z' },
     { path: '/compare', label: 'Compare', icon: 'M4 5h6v14H4zM14 5h6v14h-6zM12 3v18' },
-    { path: '/sales', label: 'Sales', icon: 'M3 12V4h8l10 10-8 8L3 12zM7.5 7.5h.01' },
+    { path: '/deals', label: 'Deals', icon: 'M3 12V4h8l10 10-8 8L3 12zM7.5 7.5h.01' },
     { path: '/account', label: 'My list', icon: 'M6 3h12v18l-6-4-6 4z' },
   ];
 
@@ -130,7 +132,7 @@ export class App {
 
   headerSearch(): void {
     const q = this.headerQuery.trim();
-    if (q) this.router.navigate(['/products'], { queryParams: { q } });
+    if (q) this.router.navigate(['/dishes'], { queryParams: { q } });
   }
 
   protected cheapest = () => Math.min(...this.tray.items().map((p) => p.price));

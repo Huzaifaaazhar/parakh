@@ -4,7 +4,7 @@ Vercel can't run Postgres, Redis or Celery, so the demo serves a snapshot of
 the scraped catalogue: on cold start the gzipped SQLite snapshot is copied to
 /tmp (writable, so sign-up, wishlist and chat memory work per instance) and
 the precomputed vectors are loaded into the in-memory index. Scheduled
-scraping runs only in the full Docker/Render deployment.
+scraping (headless menu capture) runs only in the full Docker deployment.
 """
 
 import gzip
@@ -23,6 +23,8 @@ os.environ.setdefault("VECTOR_BACKEND", "memory")
 os.environ.setdefault("EMBEDDING_BACKEND", "hash")
 os.environ.setdefault("REDIS_URL", "redis://127.0.0.1:1/0")  # no Redis: in-process cache
 os.environ.setdefault("MEMORY_BACKEND", "db")
+# The function file system is read-only except /tmp: review photos/videos land there (per instance).
+os.environ.setdefault("MEDIA_DIR", "/tmp/media")
 
 if not os.path.exists(DB_PATH):
     with gzip.open(SNAPSHOT_DIR / "snapshot.db.gz", "rb") as src, open(DB_PATH, "wb") as dst:

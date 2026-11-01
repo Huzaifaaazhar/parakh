@@ -1,9 +1,11 @@
 """Build the read-mostly data snapshot used by the Vercel demo deployment.
 
-Copies the catalogue (stores, products, price history, events, scrape runs)
+Copies the catalogue (restaurants, menus, price history, events, scrape runs,
+reviews and banner ads)
 from a live database into a gzipped SQLite file, and precomputes the
 hashing-embedder vectors so the serverless function doesn't re-embed on
-every cold start. User data (accounts, chats) is never included.
+every cold start. User data (accounts, chats) is never included; reviews are
+included only when they are published.
 
     cd backend
     DATABASE_URL=postgresql+psycopg://... python ../deploy/vercel/build_snapshot.py
@@ -26,11 +28,11 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 import app.models  # noqa: E402,F401
 from app.db.base import Base  # noqa: E402
-from app.models import PriceHistory, Product, ProductEvent, ScrapeRun, Store  # noqa: E402
+from app.models import AdBanner, PriceHistory, Product, ProductEvent, Review, ScrapeRun, Store  # noqa: E402
 from app.services.indexing import index_products  # noqa: E402
 from app.services.vector.store import get_vector_store  # noqa: E402
 
-CATALOGUE = [Store, Product, PriceHistory, ProductEvent, ScrapeRun]
+CATALOGUE = [Store, Product, PriceHistory, ProductEvent, ScrapeRun, Review, AdBanner]
 
 
 def main() -> None:

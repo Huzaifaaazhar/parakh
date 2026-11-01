@@ -7,7 +7,7 @@ import { Observable, catchError, distinctUntilChanged, forkJoin, map, of, switch
 
 import { ApiService } from '../core/api.service';
 import { Facets, Page, Product, ProductFilters, SearchResponse, SortOption } from '../core/models';
-import { LabelPipe, PkrPipe } from '../shared/format';
+import { LabelPipe, PkrPipe, dishLabel } from '../shared/format';
 import { ProductCard } from '../shared/product-card';
 import { Reveal } from '../shared/motion';
 import { PageHero } from '../shared/page-hero';
@@ -22,7 +22,8 @@ function filtersFrom(params: ParamMap): ProductFilters {
     q: params.get('q') ?? undefined,
     vertical: params.get('vertical') ?? undefined,
     category: params.get('category') ?? undefined,
-    gender: params.get('gender') ?? undefined,
+    protein: params.get('protein') ?? undefined,
+    city: params.get('city') ?? undefined,
     store: params.getAll('store').length ? params.getAll('store') : undefined,
     color: params.get('color') ?? undefined,
     min_price: num('min_price'),
@@ -42,18 +43,18 @@ function filtersFrom(params: ParamMap): ProductFilters {
     @let f = filters();
     <app-page-hero [variant]="heroVariant()" [eyebrow]="heroEyebrow()" [title]="heroTitle()" [subtitle]="heroSubtitle()" [images]="heroImages()">
       <form (ngSubmit)="submitSearch()" class="pk-search max-w-xl" role="search">
-        <label for="browse-q" class="sr-only">Search products</label>
-        <input id="browse-q" [(ngModel)]="draftQuery" name="q" placeholder="Search kurtas, phones, perfumes" autocomplete="off" />
+        <label for="browse-q" class="sr-only">Search dishes</label>
+        <input id="browse-q" [(ngModel)]="draftQuery" name="q" placeholder="Tikka, zinger, mutton karahi, biryani…" autocomplete="off" />
         <button type="submit">Search</button>
       </form>
     </app-page-hero>
 
     @if (catTiles().length) {
-      <section class="pt-5" aria-label="Categories">
-        <app-rail label="Categories">
+      <section class="pt-5" aria-label="Dishes">
+        <app-rail label="Dishes">
           @for (t of catTiles(); track t.key; let i = $index) {
             <a class="pk-thumb" [appReveal]="i" [routerLink]="[]" [queryParams]="{ category: f.category === t.key ? null : t.key, page: null }" queryParamsHandling="merge" [attr.aria-current]="f.category === t.key ? 'true' : null">
-              <span class="pk-thumb__img" [class.ring-2]="f.category === t.key" [class.ring-bubblegum]="f.category === t.key">
+              <span class="pk-thumb__img" [class.ring-2]="f.category === t.key" [class.ring-amber]="f.category === t.key">
                 @if (t.image) {
                   <img [src]="t.image" alt="" loading="lazy" />
                 }
@@ -74,21 +75,20 @@ function filtersFrom(params: ParamMap): ProductFilters {
               <span class="pk-tray__count h-5 min-w-5 text-[11px]">{{ activeCount() }}</span>
             }
           </button>
-          <button type="button" class="pk-chip" [attr.aria-pressed]="!!f.on_sale" (click)="update({ on_sale: f.on_sale ? null : true })">On sale</button>
-          @for (g of genders; track g) {
-            <button type="button" class="pk-chip" [attr.aria-pressed]="f.gender === g" (click)="update({ gender: f.gender === g ? null : g })">{{ g | label }}</button>
+          <button type="button" class="pk-chip" [attr.aria-pressed]="f.category === 'deal'" (click)="update({ category: f.category === 'deal' ? null : 'deal' })">Deals & combos</button>
+          <button type="button" class="pk-chip" [attr.aria-pressed]="!!f.on_sale" (click)="update({ on_sale: f.on_sale ? null : true })">On offer</button>
+          @for (g of proteins; track g) {
+            <button type="button" class="pk-chip" [attr.aria-pressed]="f.protein === g" (click)="update({ protein: f.protein === g ? null : g })">{{ g | label }}</button>
           }
-          @for (b of [2000, 5000]; track b) {
+          @for (b of [500, 1000]; track b) {
             <button type="button" class="pk-chip" [attr.aria-pressed]="f.max_price === b && !f.min_price" (click)="update({ min_price: null, max_price: f.max_price === b ? null : b })">
               Under {{ b | pkr }}
             </button>
           }
-          @for (v of facets()?.verticals ?? []; track v.value) {
-            @if (v.value !== 'other') {
-              <button type="button" class="pk-chip" [attr.aria-pressed]="f.vertical === v.value" (click)="update({ vertical: f.vertical === v.value ? null : v.value, category: null })">
-                {{ v.value | label }} <span class="pk-chip__count">{{ v.count }}</span>
-              </button>
-            }
+          @for (c of facets()?.cities ?? []; track c.value) {
+            <button type="button" class="pk-chip" [attr.aria-pressed]="f.city === c.value" (click)="update({ city: f.city === c.value ? null : c.value })">
+              {{ c.value }}
+            </button>
           }
         </div>
         <label class="hidden shrink-0 items-center gap-2 sm:flex">
@@ -120,9 +120,9 @@ function filtersFrom(params: ParamMap): ProductFilters {
         </div>
 
         <label class="block">
-          <span class="t-label mb-2 block text-blue">Category</span>
+          <span class="t-label mb-2 block text-sage">Dish</span>
           <select class="pk-input" [ngModel]="f.category ?? ''" (ngModelChange)="update({ category: $event || null })" name="category">
-            <option value="">Any category</option>
+            <option value="">Any dish</option>
             @for (c of facets()?.categories ?? []; track c.value) {
               @if (c.value !== 'other') {
                 <option [value]="c.value">{{ c.value | label }} ({{ c.count }})</option>
@@ -132,7 +132,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
         </label>
 
         <fieldset>
-          <legend class="t-label mb-2 text-blue">Price</legend>
+          <legend class="t-label mb-2 text-sage">Price</legend>
           <div class="flex items-center gap-2">
             <input class="pk-input font-mono" type="number" min="0" inputmode="numeric" placeholder="Min" [(ngModel)]="minPrice" name="min" aria-label="Minimum price in rupees" />
             <span class="text-charcoal-muted">–</span>
@@ -148,12 +148,12 @@ function filtersFrom(params: ParamMap): ProductFilters {
 
         @if (facets()?.stores?.length) {
           <fieldset>
-            <legend class="t-label mb-2 text-blue">Stores</legend>
+            <legend class="t-label mb-2 text-sage">Restaurants</legend>
             <div class="max-h-72 overflow-y-auto border-t border-line">
               @for (s of facets()!.stores; track s.value) {
-                <label class="flex min-h-11 cursor-pointer items-center gap-3 border-b border-line px-1 hover:bg-blue-tint">
-                  <input type="checkbox" class="h-[18px] w-[18px] accent-blue" [checked]="f.store?.includes(s.value)" (change)="toggleStore(s.value)" />
-                  <span class="flex-1 text-[15px]">{{ s.value | label }}</span>
+                <label class="flex min-h-11 cursor-pointer items-center gap-3 border-b border-line px-1 hover:bg-sage-tint">
+                  <input type="checkbox" class="h-[18px] w-[18px] accent-sage" [checked]="f.store?.includes(s.value)" (change)="toggleStore(s.value)" />
+                  <span class="flex-1 text-[15px]">{{ storeName(s.value) }}</span>
                   <span class="font-mono text-xs text-charcoal-muted">{{ s.count }}</span>
                 </label>
               }
@@ -170,7 +170,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           @if (result(); as r0) {
             @if (!isError(r0)) {
-              <p class="t-small"><span class="font-mono font-semibold text-blue">{{ r0.total | number }}</span> items across stores</p>
+              <p class="t-small"><span class="font-mono font-semibold text-sage">{{ r0.total | number }}</span> dishes across restaurants</p>
             }
           }
           <label class="flex items-center gap-2 sm:hidden">
@@ -186,7 +186,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
         @if (loading()) {
           <app-skeleton-grid [count]="12" />
         } @else if (r && isError(r)) {
-          <app-empty-state title="We couldn't load products" message="The price service isn't answering. Try again in a moment." actionLabel="Try again" (action)="reload()" />
+          <app-empty-state title="We couldn't load dishes" message="The menu service isn't answering. Try again in a moment." actionLabel="Try again" (action)="reload()" />
         } @else if (r && r.items.length) {
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 xl:grid-cols-4">
             @for (p of r.items; track p.id; let i = $index) {
@@ -201,7 +201,7 @@ function filtersFrom(params: ParamMap): ProductFilters {
             </nav>
           }
         } @else {
-          <app-empty-state title="Nothing matched" message="Try a broader search, raise your budget, or clear a filter." actionLabel="Clear filters" (action)="clear()" />
+          <app-empty-state title="Nothing matched" message="Try another dish, raise your budget, or clear a filter." actionLabel="Clear filters" (action)="clear()" />
         }
       </section>
     </div>
@@ -220,8 +220,8 @@ export class ProductsPage {
     { value: 'price_desc', label: 'Price: high to low' },
     { value: 'newest', label: 'Newest' },
   ];
-  protected readonly genders = ['women', 'men', 'kids'];
-  protected readonly budgets = [2000, 5000, 10000, 50000];
+  protected readonly proteins = ['chicken', 'beef', 'mutton', 'veg'];
+  protected readonly budgets = [500, 1000, 2000, 5000];
   protected readonly showFilters = signal(false);
   protected readonly loading = signal(true);
   protected minPrice: number | null = null;
@@ -270,46 +270,45 @@ export class ProductsPage {
     const pf = r.parsed_filters as Record<string, string | number | boolean | null>;
     const out: string[] = [];
     if (pf['category']) out.push(String(pf['category']).replace('-', ' '));
-    if (pf['gender']) out.push(`for ${pf['gender']}`);
-    if (pf['color']) out.push(String(pf['color']));
+    if (pf['protein']) out.push(String(pf['protein']));
     if (pf['brand']) out.push(String(pf['brand']));
     if (pf['min_price'] && pf['max_price']) out.push(`Rs ${pf['min_price']}–${pf['max_price']}`);
     else if (pf['max_price']) out.push(`under Rs ${pf['max_price']}`);
     else if (pf['min_price']) out.push(`above Rs ${pf['min_price']}`);
-    if (pf['on_sale']) out.push('on sale');
+    if (pf['on_sale']) out.push('on offer');
     return out;
   });
 
   protected readonly hasFilters = computed(() => {
     const f = this.filters();
-    return !!(f.vertical || f.category || f.gender || f.store || f.min_price || f.max_price || f.on_sale || f.color);
+    return !!(f.category || f.protein || f.city || f.store || f.min_price || f.max_price || f.on_sale);
   });
 
   protected readonly heroVariant = computed(() => {
     const f = this.filters();
-    if (f.on_sale) return 'pink' as const;
-    if (f.vertical === 'electronics') return 'ink' as const;
+    if (f.on_sale || f.category === 'deal') return 'amber' as const;
+    if (f.category || f.protein) return 'ink' as const;
     return 'paper' as const;
   });
   protected readonly heroEyebrow = computed(() => {
     const f = this.filters();
     if (f.q) return 'Search results';
-    if (f.on_sale) return 'On sale now';
-    return f.vertical ? 'Department' : 'Browse';
+    if (f.on_sale) return 'On offer now';
+    if (f.city) return `Dishes in ${f.city}`;
+    return f.category ? 'Compare' : 'Dishes';
   });
   protected readonly heroTitle = computed(() => {
     const f = this.filters();
-    const label = (v: string) => (v === 't-shirt' ? 'T-shirts' : v.charAt(0).toUpperCase() + v.slice(1).replace(/-/g, ' '));
     if (f.q) return `“${f.q}”`;
-    if (f.category) return label(f.category);
-    if (f.vertical) return label(f.vertical);
-    return 'All products';
+    if (f.category) return f.protein ? `${dishLabel(f.protein)} ${dishLabel(f.category).toLowerCase()}` : dishLabel(f.category);
+    if (f.protein) return dishLabel(f.protein) + ' dishes';
+    return 'Every dish, every restaurant';
   });
   protected readonly heroSubtitle = computed(() => {
     const r = this.result();
-    if (!r || this.isError(r)) return 'Every store we track, matched and price-checked.';
+    if (!r || this.isError(r)) return 'Menus from every restaurant we read, matched dish by dish.';
     const extra = this.understood().length ? ` · showing ${this.understood().join(' · ')}` : '';
-    return `${r.total.toLocaleString('en-PK')} items across stores${extra}`;
+    return `${r.total.toLocaleString('en-PK')} dishes across restaurants${extra}`;
   });
   protected readonly heroImages = computed(() => {
     const r = this.result();
@@ -321,13 +320,13 @@ export class ProductsPage {
 
   protected readonly activeCount = computed(() => {
     const f = this.filters();
-    return [f.vertical, f.category, f.gender, f.min_price || f.max_price, f.on_sale, ...(f.store ?? [])].filter(Boolean).length;
+    return [f.category, f.protein, f.city, f.min_price || f.max_price, f.on_sale, ...(f.store ?? [])].filter(Boolean).length;
   });
 
   constructor() {
     effect(() => {
       const fac = this.facets();
-      const cats = (fac?.categories ?? []).filter((c) => c.value !== 'other').slice(0, 12);
+      const cats = (fac?.categories ?? []).filter((c) => !['other', 'add-on', 'drink'].includes(c.value)).slice(0, 14);
       const key = cats.map((c) => c.value).join(',') + '|' + (this.filters().vertical ?? '');
       if (!cats.length || key === this.catKey) return;
       this.catKey = key;
@@ -335,13 +334,19 @@ export class ProductsPage {
       this.catTiles.set(cats.map((c) => ({ key: c.value, count: c.count, image: null })));
       forkJoin(
         cats.map((c) =>
-          this.api.products({ category: c.value, vertical, sort: 'value', page_size: 1 }).pipe(
-            map((r) => r.items[0]?.image_url ?? null),
+          this.api.products({ category: c.value, vertical, page_size: 12 }).pipe(
+            map((r) => r.items.find((p) => p.image_url)?.image_url ?? null),
             catchError(() => of(null)),
           ),
         ),
       ).subscribe((imgs) => this.catTiles.set(cats.map((c, i) => ({ key: c.value, count: c.count, image: imgs[i] }))));
     });
+  }
+
+  /** Restaurant names for the slug facets (falls back to a tidy slug). */
+  private readonly names = toSignal(this.api.restaurants().pipe(catchError(() => of([]))), { initialValue: [] });
+  storeName(slug: string): string {
+    return this.names().find((r) => r.slug === slug)?.name ?? dishLabel(slug);
   }
 
   submitSearch(): void {

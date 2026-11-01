@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 
-/** Product photo; when it's missing or fails, a flat blue-tint tile with the store's initial (no gradients, no icons). */
+/** Product photo; when it's missing or fails, a flat sage-tint tile with the store's initial (no gradients, no icons). */
 @Component({
   selector: 'app-product-image',
   changeDetection: ChangeDetectionStrategy.OnPush,

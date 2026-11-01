@@ -21,7 +21,7 @@ import { EmptyState } from '../shared/states';
       variant="paper"
       eyebrow="Side by side"
       title="Compare"
-      [subtitle]="tray.count() >= 2 ? 'Comparing ' + tray.count() + ' products. The best figure in each row is marked.' : 'Up to four products from any store. Mix brands and shops freely.'"
+      [subtitle]="tray.count() >= 2 ? 'Comparing ' + tray.count() + ' dishes. The best figure in each row is marked.' : 'Up to four dishes from any restaurant. Compare the same dish for a fair fight.'"
       [images]="heroImages()"
     >
       @if (tray.count()) {
@@ -32,43 +32,43 @@ import { EmptyState } from '../shared/states';
     <div class="mx-auto max-w-7xl px-4 pb-16 pt-8">
       @if (tray.count() < 2) {
         <div class="pk-panel p-5 sm:p-7">
-          <h2 class="t-heading">{{ tray.count() === 1 ? 'Add one more to compare' : 'Pick two or more products' }}</h2>
-          <p class="t-small mt-2 text-charcoal">Tick “Compare” on any card below, or on any product anywhere on Parakh.</p>
+          <h2 class="t-heading">{{ tray.count() === 1 ? 'Add one more to compare' : 'Pick two or more dishes' }}</h2>
+          <p class="t-small mt-2 text-charcoal">Tick “Compare” on any dish below, or on any dish anywhere on Parakh.</p>
         </div>
         <section class="mt-8" aria-labelledby="suggest">
           <h2 id="suggest" class="t-display-lg mb-5">Good places to start</h2>
-          <app-rail label="Suggested products">
+          <app-rail label="Suggested dishes">
             @for (p of suggestions(); track p.id; let i = $index) {
               <div class="pk-railcard" [appReveal]="i"><app-product-card [product]="p" /></div>
             }
           </app-rail>
         </section>
       } @else if (error()) {
-        <app-empty-state title="We couldn't compare these" message="One of the products may no longer be listed." />
+        <app-empty-state title="We couldn't compare these" message="One of the dishes may be off the menu now." />
       } @else if (data(); as d) {
-        <p class="mb-6 rounded-[8px] bg-gradient-to-r from-bubblegum-soft to-paper-raised px-4 py-3 text-[15px] text-charcoal">{{ d.summary }}</p>
+        <p class="mb-6 rounded-[8px] bg-gradient-to-r from-amber-soft to-paper-raised px-4 py-3 text-[15px] text-charcoal">{{ d.summary }}</p>
         <div class="pk-panel overflow-x-auto">
           <table class="pk-cmp w-full min-w-[640px] table-fixed border-collapse text-[15px]">
-            <caption class="sr-only">Side-by-side product comparison</caption>
+            <caption class="sr-only">Side-by-side dish comparison</caption>
             <thead class="sticky top-14 z-10 bg-paper-raised">
               <tr>
                 <th scope="col" class="w-32 p-4 text-left align-bottom"><span class="t-label text-charcoal-muted">Product</span></th>
                 @for (p of d.products; track p.id) {
                   <th scope="col" class="p-4 text-left align-top font-normal">
                     <div class="relative">
-                      <a [routerLink]="['/products', p.id]" class="block aspect-square overflow-hidden rounded-[8px] bg-gradient-to-br from-paper-raised to-blue-tint" [style.view-transition-name]="'product-' + p.id">
+                      <a [routerLink]="['/dishes', p.id]" class="block aspect-square overflow-hidden rounded-[8px] bg-gradient-to-br from-paper-raised to-sage-tint" [style.view-transition-name]="'product-' + p.id">
                         <app-product-image [src]="p.image_url" [label]="p.store_name || p.brand_name" />
                       </a>
                       <button
                         type="button"
-                        class="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-paper-raised text-blue shadow"
+                        class="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-paper-raised text-sage shadow"
                         (click)="tray.remove(p.id)"
                         [attr.aria-label]="'Remove ' + p.product_name"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
                       </button>
                       <p class="pk-card__store mt-3">{{ p.store_name }}</p>
-                      <a [routerLink]="['/products', p.id]" class="t-title mt-1 line-clamp-2 hover:underline">{{ p.product_name }}</a>
+                      <a [routerLink]="['/dishes', p.id]" class="t-title mt-1 line-clamp-2 hover:underline">{{ p.product_name }}</a>
                     </div>
                   </th>
                 }
@@ -84,7 +84,7 @@ import { EmptyState } from '../shared/states';
                         <span class="is-best">{{ v }}</span>
                         <span class="sr-only">(best)</span>
                       } @else {
-                        <span [class.text-blue]="isNumeric(row.attribute)">{{ v ?? '—' }}</span>
+                        <span [class.text-sage]="isNumeric(row.attribute)">{{ v ?? '—' }}</span>
                       }
                     </td>
                   }
@@ -116,7 +116,7 @@ export class ComparePage {
 
   constructor() {
     this.api
-      .trending(undefined, 12)
+      .products({ category: 'tikka', page_size: 12 })
       .pipe(catchError(() => of({ items: [] as Product[] })))
       .subscribe((r) => this.suggestions.set(r.items));
     effect(() => {
@@ -131,6 +131,6 @@ export class ComparePage {
   }
 
   isNumeric(attribute: string): boolean {
-    return /price|discount|mah|ram|storage|inches|wattage|ml/i.test(attribute);
+    return /price|discount|rating/i.test(attribute);
   }
 }

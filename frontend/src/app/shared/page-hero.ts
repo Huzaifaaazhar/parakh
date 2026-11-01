@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-export type HeroVariant = 'ink' | 'pink' | 'paper';
+export type HeroVariant = 'ink' | 'amber' | 'paper';
 
 /**
  * Gradient page banner shared by every inner page: eyebrow, title, subtitle, a slot for
@@ -12,7 +12,7 @@ export type HeroVariant = 'ink' | 'pink' | 'paper';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
-    <section class="pk-pagehero" [class]="'pk-pagehero--' + variant()" [class.pk-on-blue]="variant() === 'ink'">
+    <section class="pk-pagehero" [class]="'pk-pagehero--' + variant()" [class.pk-on-sage]="variant() === 'ink'">
       @if (variant() === 'ink') {
         <div class="pk-ink pk-ink--fold" aria-hidden="true"></div>
         <div class="pk-ink pk-ink--seam" aria-hidden="true"></div>

@@ -5,6 +5,11 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   AppNotification,
+  Banner,
+  OffersResponse,
+  Restaurant,
+  RestaurantDetail,
+  Review,
   ChatResponse,
   CompareResponse,
   Facets,
@@ -78,6 +83,39 @@ export class ApiService {
 
   stores(): Observable<StoreSummary[]> {
     return this.http.get<StoreSummary[]>(`${this.base}/stores`);
+  }
+
+  restaurants(params: { city?: string; cuisine?: string; q?: string } = {}): Observable<Restaurant[]> {
+    return this.http.get<Restaurant[]>(`${this.base}/restaurants`, { params: toParams(params) });
+  }
+
+  restaurant(slug: string): Observable<RestaurantDetail> {
+    return this.http.get<RestaurantDetail>(`${this.base}/restaurants/${encodeURIComponent(slug)}`);
+  }
+
+  offers(city?: string, limit = 24): Observable<OffersResponse> {
+    return this.http.get<OffersResponse>(`${this.base}/offers`, { params: toParams({ city, limit }) });
+  }
+
+  reviews(params: { restaurant?: string; product_id?: number; with_media?: boolean; source?: string; limit?: number } = {}): Observable<Review[]> {
+    return this.http.get<Review[]>(`${this.base}/reviews`, { params: toParams(params) });
+  }
+
+  postReview(slug: string, form: FormData): Observable<Review> {
+    return this.http.post<Review>(`${this.base}/restaurants/${encodeURIComponent(slug)}/reviews`, form);
+  }
+
+  banners(): Observable<Banner[]> {
+    return this.http.get<Banner[]>(`${this.base}/banners`);
+  }
+
+  bannerClick(id: number): Observable<void> {
+    return this.http.post<void>(`${this.base}/banners/${id}/click`, {});
+  }
+
+  mediaUrl(url: string): string {
+    // review uploads are served by the API host (relative "/media/..." paths)
+    return url.startsWith('/') ? `${this.base.replace(/\/api$/, '')}${url}` : url;
   }
 
   chat(message: string, sessionId: string | null, productId?: number | null): Observable<ChatResponse> {

@@ -28,7 +28,7 @@ export class SkeletonGrid {
   selector: 'app-empty-state',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-col items-start gap-3 border-t-2 border-blue py-8">
+    <div class="flex flex-col items-start gap-3 border-t-2 border-sage py-8">
       <p class="t-heading">{{ title() }}</p>
       @if (message()) {
         <p class="t-small max-w-md">{{ message() }}</p>

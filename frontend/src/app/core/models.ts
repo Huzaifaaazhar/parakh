@@ -1,5 +1,6 @@
-export type Vertical = 'fashion' | 'electronics' | 'beauty' | 'home' | 'other';
+export type Vertical = 'food' | 'other';
 export type Gender = 'men' | 'women' | 'kids' | 'unisex';
+export type Protein = 'chicken' | 'beef' | 'mutton' | 'fish' | 'prawn' | 'veg';
 export type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'discount' | 'newest' | 'value';
 
 export interface Product {
@@ -22,6 +23,16 @@ export interface Product {
   in_stock: boolean;
   is_on_sale: boolean;
   last_updated: string;
+  // dish facts
+  description?: string | null;
+  store_slug?: string | null;
+  store_rating?: number | null;
+  store_logo?: string | null;
+  protein?: Protein | null;
+  portion?: string | null;
+  unit_price?: number | null;
+  unit_label?: string | null;
+  attributes?: Record<string, unknown>;
   // present on price-drop items from the assistant
   old_price?: number;
   drop_percentage?: number;
@@ -35,8 +46,6 @@ export interface PricePoint {
 }
 
 export interface ProductDetail extends Product {
-  description: string | null;
-  attributes: Record<string, unknown>;
   tags: string[];
   first_seen_at: string;
   last_price_change_at: string | null;
@@ -71,6 +80,8 @@ export interface Facets {
   stores: FacetValue[];
   genders: FacetValue[];
   colors: FacetValue[];
+  proteins: FacetValue[];
+  cities: FacetValue[];
   price_min: number;
   price_max: number;
 }
@@ -83,6 +94,8 @@ export interface ProductFilters {
   brand?: string[];
   store?: string[];
   color?: string;
+  protein?: string;
+  city?: string;
   min_price?: number;
   max_price?: number;
   on_sale?: boolean;
@@ -95,7 +108,7 @@ export interface ProductFilters {
 export interface Alternative {
   product: Product;
   similarity: number;
-  match_type: 'same_product' | 'similar';
+  match_type: 'same_dish' | 'similar';
   price_difference: number;
   price_difference_pct: number;
   is_cheaper: boolean;
@@ -184,4 +197,94 @@ export interface AppNotification {
   message: string;
   is_read: boolean;
   created_at: string;
+}
+
+export interface RestaurantOffer {
+  id: string;
+  title: string;
+  detail?: string | null;
+  percent?: number | null;
+  amount?: number | null;
+  max_discount?: number | null;
+  channels?: string[];
+  valid_to?: string | null;
+}
+
+export interface Restaurant {
+  id: number;
+  slug: string;
+  name: string;
+  website: string;
+  platform: string;
+  logo_url: string | null;
+  last_scraped_at: string | null;
+  cuisines: string[];
+  cities: string[];
+  offers: RestaurantOffer[];
+  rating: number | null; // Google
+  rating_count: number | null;
+  price_level: string | null;
+  address: string | null;
+  maps_url: string | null;
+  menu_items: number;
+  dishes: string[];
+  min_price: number | null;
+  median_price: number | null;
+  cover_image: string | null;
+  review_count: number;
+  parakh_rating: number | null;
+  media_count: number;
+}
+
+export interface ReviewMedia {
+  type: 'photo' | 'video';
+  url: string;
+  thumb?: string | null;
+}
+
+export interface Review {
+  id: number;
+  store_id: number;
+  restaurant_name: string | null;
+  restaurant_slug: string | null;
+  product_id: number | null;
+  dish_name: string | null;
+  source: 'parakh' | 'google';
+  author_name: string;
+  author_url: string | null;
+  author_photo: string | null;
+  rating: number;
+  text: string | null;
+  media: ReviewMedia[];
+  visited_branch: string | null;
+  verified: boolean;
+  helpful: number;
+  created_at: string;
+}
+
+export interface RestaurantDetail {
+  restaurant: Restaurant;
+  sections: { name: string; items: Product[] }[];
+  reviews: Review[];
+  rating_breakdown: Record<string, number>;
+}
+
+export interface Banner {
+  id: number;
+  kind: 'sponsored' | 'featured';
+  eyebrow: string | null;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  cta_label: string;
+  link_url: string | null;
+  restaurant_slug: string | null;
+  restaurant_name: string | null;
+}
+
+export interface OffersResponse {
+  restaurant_offers: { restaurant: Restaurant; offer: RestaurantOffer }[];
+  deal_items: Product[];
+  discounted: Product[];
 }

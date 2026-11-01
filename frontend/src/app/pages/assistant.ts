@@ -40,15 +40,15 @@ function readSession(): string | null {
         @if (!messages().length) {
           <app-page-hero
             variant="ink"
-            eyebrow="Shopping assistant"
+            eyebrow="Food assistant"
             title="Ask before you buy"
-            subtitle="Ask in plain words. We search every store we track, compare similar items and point out the real deals."
+            subtitle="Ask in plain words. We search every menu we read, compare the same dish across restaurants and point out the real deals."
           />
           <div class="mx-auto max-w-3xl px-4 py-8">
             @if (productId()) {
-              <p class="mb-5 rounded-[8px] bg-gradient-to-r from-bubblegum-soft to-paper-raised px-4 py-3 text-[15px]">You came from a product page. Ask for cheaper alternatives to it.</p>
+              <p class="mb-5 rounded-[8px] bg-gradient-to-r from-amber-soft to-paper-raised px-4 py-3 text-[15px]">You came from a dish. Ask where it is cheaper.</p>
             }
-            <p class="t-label mb-3 text-blue">Try one of these</p>
+            <p class="t-label mb-3 text-sage">Try one of these</p>
             <div class="grid gap-3 sm:grid-cols-2">
               @for (s of starters(); track s; let i = $index) {
                 <button type="button" class="pk-starter" [appReveal]="i" (click)="send(s)">
@@ -68,13 +68,13 @@ function readSession(): string | null {
               </div>
             } @else {
               <div class="pk-msg-in flex gap-3">
-                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-gradient-to-br from-blue to-blue-ink font-display text-[15px] font-extrabold text-bubblegum" aria-hidden="true">P</span>
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-gradient-to-br from-sage to-sage-ink font-display text-[15px] font-extrabold text-amber" aria-hidden="true">P</span>
                 <div class="min-w-0 flex-1 space-y-3">
-                  <div class="pk-bubble-bot whitespace-pre-line px-4 py-3 text-[15px] leading-relaxed" [class.text-pink-ink]="m.error">{{ m.text }}</div>
+                  <div class="pk-bubble-bot whitespace-pre-line px-4 py-3 text-[15px] leading-relaxed" [class.text-amber-ink]="m.error">{{ m.text }}</div>
                   @if (m.products?.length) {
                     <div class="pk-strip -mx-1 px-1 pb-2">
                       @for (p of m.products; track p.id) {
-                        <a [routerLink]="['/products', p.id]" class="pk-card w-40 shrink-0 overflow-hidden">
+                        <a [routerLink]="['/dishes', p.id]" class="pk-card w-40 shrink-0 overflow-hidden">
                           <div class="relative aspect-square overflow-hidden bg-paper">
                             <app-product-image [src]="p.image_url" [label]="p.store_name || p.brand_name" />
                             @if (p.discount_percentage > 0) {
@@ -113,7 +113,7 @@ function readSession(): string | null {
           }
           @if (busy()) {
             <div class="pk-msg-in flex items-center gap-3" role="status">
-              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-gradient-to-br from-blue to-blue-ink font-display text-[15px] font-extrabold text-bubblegum" aria-hidden="true">P</span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] bg-gradient-to-br from-sage to-sage-ink font-display text-[15px] font-extrabold text-amber" aria-hidden="true">P</span>
               <span class="pk-bubble-bot pk-typing px-4 py-3"><span></span><span></span><span></span><span class="sr-only">Checking prices</span></span>
             </div>
           }
@@ -132,13 +132,13 @@ function readSession(): string | null {
                 maxlength="2000"
                 (keydown.enter)="onEnter($any($event))"
                 class="block max-h-40 w-full resize-none bg-transparent px-4 py-3.5 text-base text-charcoal outline-none placeholder:text-charcoal-muted"
-                placeholder="Best lawn suits under 5000 on sale"
+                placeholder="Chicken tikka under 800"
               ></textarea>
             </label>
             <button class="h-[52px] shrink-0 px-5" [disabled]="busy() || !draft.trim()">Ask</button>
           </div>
           <div class="t-small mt-2 flex justify-between gap-4 text-xs">
-            <span>Prices come from our latest store checks. Confirm on the store before you buy.</span>
+            <span>Prices come from our latest menu reads. Confirm with the restaurant when you order.</span>
             @if (messages().length) {
               <button type="button" class="pk-link shrink-0 text-xs" (click)="reset()">New chat</button>
             }
@@ -162,8 +162,8 @@ export class AssistantPage {
   protected productId = () => (this.product() ? Number(this.product()) : null);
   protected starters = () =>
     this.productId()
-      ? ['Find cheaper alternatives to this', 'Is this the same price elsewhere?', 'Show similar items on sale', 'Which stores have sales right now?']
-      : ['Best shirts under 3000 for men', 'Lawn suits on sale', 'Cheaper alternatives to Samsung Galaxy A15', 'Which stores have sales right now?'];
+      ? ['Where is this cheaper?', 'Same dish at other restaurants', 'Deals that include this', 'Which restaurants have offers?']
+      : ['Chicken tikka under 800', 'Burger deals', 'Cheapest mutton karahi half', 'Which restaurants have offers?'];
 
   onEnter(event: KeyboardEvent): void {
     if (event.shiftKey) return;

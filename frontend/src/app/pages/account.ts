@@ -19,13 +19,13 @@ import { ProductCard } from '../shared/product-card';
   template: `
     @if (!auth.isLoggedIn()) {
       <div class="grid min-h-[calc(100dvh-3.5rem)] lg:grid-cols-2">
-        <section class="pk-pagehero pk-pagehero--pink relative overflow-hidden px-4 py-10 sm:px-10 sm:py-16" aria-labelledby="why">
+        <section class="pk-pagehero pk-pagehero--amber relative overflow-hidden px-4 py-10 sm:px-10 sm:py-16" aria-labelledby="why">
           <div class="pk-pagehero__copy relative z-[2] max-w-lg">
             <p class="t-label pk-pagehero__eyebrow">Your list</p>
-            <h1 id="why" class="pk-pagehero__title">Save it. We'll watch the price.</h1>
-            <ul class="mt-6 space-y-3 text-[16px] text-blue-ink">
+            <h1 id="why" class="pk-pagehero__title">Save it. We'll watch the menu.</h1>
+            <ul class="mt-6 space-y-3 text-[16px] text-sage-ink">
               @for (b of benefits; track b) {
-                <li class="flex gap-3"><span class="mt-1.5 h-2.5 w-2.5 shrink-0 rotate-[-6deg] rounded-[2px] bg-blue"></span>{{ b }}</li>
+                <li class="flex gap-3"><span class="mt-1.5 h-2.5 w-2.5 shrink-0 rotate-[-6deg] rounded-[2px] bg-sage"></span>{{ b }}</li>
               }
             </ul>
           </div>
@@ -36,7 +36,7 @@ import { ProductCard } from '../shared/product-card';
           </div>
         </section>
 
-        <div class="flex items-start justify-center bg-gradient-to-b from-paper to-blue-tint/40 px-4 py-10 sm:py-16">
+        <div class="flex items-start justify-center bg-gradient-to-b from-paper to-sage-tint/40 px-4 py-10 sm:py-16">
           <form (ngSubmit)="submit()" class="pk-panel w-full max-w-md space-y-4 p-6 sm:p-8">
             <div class="pk-tabs w-full" role="tablist" aria-label="Sign in or create account">
               <span class="pk-tabs__pill" [style.width]="'calc(50% - 4px)'" [style.transform]="mode() === 'login' ? 'translateX(4px)' : 'translateX(calc(100% + 4px))'" aria-hidden="true"></span>
@@ -46,23 +46,23 @@ import { ProductCard } from '../shared/product-card';
             <h2 class="t-heading pt-2">{{ mode() === 'login' ? 'Welcome back' : 'Create your account' }}</h2>
             @if (mode() === 'register') {
               <label class="block">
-                <span class="t-label mb-1 block text-blue">Name</span>
+                <span class="t-label mb-1 block text-sage">Name</span>
                 <input class="pk-input" [(ngModel)]="name" name="name" autocomplete="name" />
               </label>
             }
             <label class="block">
-              <span class="t-label mb-1 block text-blue">Email</span>
+              <span class="t-label mb-1 block text-sage">Email</span>
               <input class="pk-input" type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
             </label>
             <label class="block">
-              <span class="t-label mb-1 block text-blue">Password</span>
+              <span class="t-label mb-1 block text-sage">Password</span>
               <input class="pk-input" type="password" [(ngModel)]="password" name="password" required minlength="8" [attr.autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'" />
               @if (mode() === 'register') {
                 <span class="t-small mt-1 block">At least 8 characters.</span>
               }
             </label>
             @if (error()) {
-              <p class="text-[15px] font-semibold text-pink-ink" role="alert">{{ error() }}</p>
+              <p class="text-[15px] font-semibold text-amber-ink" role="alert">{{ error() }}</p>
             }
             <button class="pk-btn pk-btn--primary w-full" [disabled]="busy()">{{ mode() === 'login' ? 'Sign in' : 'Create account' }}</button>
           </form>
@@ -90,14 +90,14 @@ import { ProductCard } from '../shared/product-card';
           } @else {
             <div class="pk-panel p-6">
               <p class="t-heading">Nothing saved yet</p>
-              <p class="t-small mt-2 text-charcoal">Tap the bookmark on any product to track its price. We'll tell you here when it drops.</p>
-              <a routerLink="/products" [queryParams]="{ sort: 'value' }" class="pk-btn pk-btn--primary pk-btn--sm mt-4">Find something to save</a>
+              <p class="t-small mt-2 text-charcoal">Tap the bookmark on any dish to track its price. We'll tell you here when it drops.</p>
+              <a routerLink="/dishes" [queryParams]="{ sort: 'value' }" class="pk-btn pk-btn--primary pk-btn--sm mt-4">Find something to save</a>
             </div>
           }
         </section>
 
         <section class="lg:sticky lg:top-20 lg:self-start" aria-labelledby="alerts">
-          <div class="pk-panel pk-panel--blue p-5">
+          <div class="pk-panel pk-panel--sage p-5">
             <div class="mb-3 flex items-center justify-between">
               <h2 id="alerts" class="t-heading">Price alerts</h2>
               @if (hasUnread()) {
@@ -107,9 +107,9 @@ import { ProductCard } from '../shared/product-card';
             @if (notifications().length) {
               <ul class="pk-ledger">
                 @for (n of notifications(); track n.id) {
-                  <li class="border-b border-line py-3 text-[15px]" [class.bg-bubblegum-soft]="!n.is_read" [class.px-2]="!n.is_read">
+                  <li class="border-b border-line py-3 text-[15px]" [class.bg-amber-soft]="!n.is_read" [class.px-2]="!n.is_read">
                     @if (n.product_id) {
-                      <a [routerLink]="['/products', n.product_id]" class="hover:underline">{{ n.message }}</a>
+                      <a [routerLink]="['/dishes', n.product_id]" class="hover:underline">{{ n.message }}</a>
                     } @else {
                       {{ n.message }}
                     }
@@ -118,7 +118,7 @@ import { ProductCard } from '../shared/product-card';
                 }
               </ul>
             } @else {
-              <p class="t-small border-t-2 border-blue pt-3">No alerts yet. We check prices every few hours and tell you here when a saved item gets cheaper.</p>
+              <p class="t-small border-t-2 border-sage pt-3">No alerts yet. We check prices every few hours and tell you here when a saved item gets cheaper.</p>
             }
           </div>
         </section>
@@ -142,7 +142,7 @@ export class AccountPage {
   protected name = '';
 
   protected readonly benefits = [
-    'Save anything from any store in one list',
+    'Save dishes from any restaurant in one list',
     'Get told when a saved price drops',
     'Set a target price and we watch for it',
   ];
