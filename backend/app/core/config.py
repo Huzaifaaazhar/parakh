@@ -32,12 +32,23 @@ class Settings(BaseSettings):
     scrape_interval_hours: int = Field(default=6, ge=1, le=24)
 
     # --- Scraping ---
-    scraper_config_path: str = str(BASE_DIR / "app" / "scrapers" / "stores.yaml")
+    scraper_config_path: str = str(BASE_DIR / "app" / "scrapers" / "restaurants.yaml")
     scraper_fetcher: str = "scrapling"  # scrapling | httpx | stealth | dynamic
     scraper_max_pages: int = 20
     scraper_page_size: int = 250
     scraper_request_delay: float = 1.0
     scraper_timeout: int = 30
+    browser_executable: str | None = None  # Chromium path for menu capture (Playwright default if unset)
+
+    # --- Google Places (optional; restaurant ratings, address, Google reviews) ---
+    google_maps_api_key: str | None = None
+    google_places_language: str = "en"
+    google_places_region: str = "pk"
+
+    # --- Reviews / media / ads ---
+    media_dir: str = str(BASE_DIR / "data" / "media")
+    media_url_prefix: str = "/media"
+    max_upload_mb: int = 40
 
     # --- Embeddings / vector store ---
     embedding_backend: str = "sentence-transformers"  # sentence-transformers | hash

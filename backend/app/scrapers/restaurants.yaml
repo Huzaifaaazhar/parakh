@@ -1,0 +1,30 @@
+# Restaurants whose menus the pipeline collects from their own ordering sites.
+# platform: indolj -> headless browser loads the site and keeps the menu/offers JSON it fetches
+# platform: jsonld -> reads schema.org Product data embedded in the page HTML (Tossdown sites)
+# cuisines: shown on restaurant cards and used as a hint for the assistant.
+# Ratings, address and Google reviews are added by `python -m app.cli places-sync` when
+# GOOGLE_MAPS_API_KEY is set.
+stores:
+  # ---------------- BBQ, desi & biryani ----------------
+  - {slug: tooso, name: Tooso, website: "https://www.tooso.pk", platform: indolj, verticals: [food], cuisines: [bbq, burgers, desi]}
+  - {slug: student-biryani, name: Student Biryani, website: "https://www.studentbiryani.com", platform: indolj, verticals: [food], cuisines: [biryani, desi]}
+  - {slug: bundu-khan, name: Bundu Khan, website: "https://bundukhan.pk", platform: jsonld, verticals: [food], cuisines: [bbq, desi], cities: [Lahore, Islamabad, Karachi]}
+  - {slug: mandi-house, name: Mandi House, website: "https://www.mandihouse.pk", platform: indolj, verticals: [food], cuisines: [arabic, mandi]}
+  - {slug: istanbul, name: Istanbul, website: "https://www.istanbul.com.pk", platform: indolj, verticals: [food], cuisines: [turkish, bbq]}
+  # ---------------- Burgers & fried chicken ----------------
+  - {slug: burger-lab, name: Burger Lab, website: "https://www.burgerlab.com.pk", platform: indolj, verticals: [food], cuisines: [burgers]}
+  - {slug: burger-oclock, name: "Burger O'Clock", website: "https://www.burgeroclock.com.pk", platform: indolj, verticals: [food], cuisines: [burgers]}
+  - {slug: kababjees-fried-chicken, name: Kababjees Fried Chicken, website: "https://www.kababjeesfriedchicken.com", platform: indolj, verticals: [food], cuisines: [fried chicken, burgers]}
+  - {slug: kaybees, name: Kaybees, website: "https://www.kaybees.com.pk", platform: indolj, verticals: [food], cuisines: [burgers, fast food]}
+  - {slug: hot-n-roll, name: "Hot n Roll", website: "https://www.hotnroll.pk", platform: indolj, verticals: [food], cuisines: [rolls, fast food]}
+  # ---------------- Pizza ----------------
+  - {slug: california-pizza, name: California Pizza, website: "https://www.californiapizza.com.pk", platform: indolj, verticals: [food], cuisines: [pizza]}
+  - {slug: pizza-one, name: Pizza One, website: "https://www.pizzaone.pk", platform: indolj, verticals: [food], cuisines: [pizza]}
+  - {slug: pizza-nation, name: Pizza Nation, website: "https://www.pizzanation.pk", platform: indolj, verticals: [food], cuisines: [pizza]}
+  # ---------------- Chinese, cafes & desserts ----------------
+  # Ginsoy left Indolj (no menu requests on its site as of Nov 2026); re-enable once a new adapter exists.
+  - {slug: ginsoy, name: Ginsoy, website: "https://ginsoy.com", platform: indolj, enabled: false, verticals: [food], cuisines: [chinese]}
+  - {slug: xanders, name: "Xander's", website: "https://www.xanders.pk", platform: indolj, verticals: [food], cuisines: [cafe, continental]}
+  - {slug: chaiwala, name: Chaiwala, website: "https://www.chaiwala.pk", platform: indolj, verticals: [food], cuisines: [cafe, chai]}
+  - {slug: hobnob, name: Hobnob, website: "https://www.hobnob.pk", platform: indolj, verticals: [food], cuisines: [bakery, desserts]}
+  - {slug: delizia, name: Delizia, website: "https://www.delizia.pk", platform: indolj, verticals: [food], cuisines: [desserts, bakery]}

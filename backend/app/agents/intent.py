@@ -19,7 +19,9 @@ _RULES: list[tuple[str, re.Pattern]] = [
     (
         "sales_overview",
         re.compile(
-            r"\b(which|what) (stores?|brands?|shops?) (have|has|are|is) (on )?(a )?sales?\b|\bsales? overview\b|\ball (the )?sales\b|\bwho has (a )?sale\b",
+            r"\b(which|what) (restaurants?|places?|cafes?|stores?|brands?|shops?) (have|has|are|is|are running|running|offer)"
+            r" (on )?(a |any )?(sales?|offers?|deals?|discounts?)\b|\b(sales?|offers?) overview\b|\ball (the )?(sales|offers)\b"
+            r"|\bwho has (a |an |any )?(sale|offer|discount)\b|\b(offers|discounts) (running|today|right now|near me)\b",
             re.I,
         ),
     ),
@@ -27,7 +29,7 @@ _RULES: list[tuple[str, re.Pattern]] = [
     (
         "compare",
         re.compile(
-            r"\b(alternatives?|similar|compare|comparison|like this|instead of|versus|vs\.?|same (product|item)|dupe|cheaper (than|version|option)|other stores?)\b",
+            r"\b(alternatives?|similar|compare|comparison|like this|instead of|versus|vs\.?|same (product|item|dish)|dupe|cheaper (than|version|option)|other (stores?|restaurants?|places?)|elsewhere)\b",
             re.I,
         ),
     ),
@@ -44,21 +46,20 @@ def rule_intent(message: str, has_product_context: bool) -> str:
     return "search"
 
 
-SYSTEM_PROMPT = """You extract shopping intent for a Pakistani price-comparison site (prices in PKR).
+SYSTEM_PROMPT = """You extract what a diner wants on a Pakistani restaurant-comparison site (prices in PKR).
 Return ONLY a JSON object with keys:
-intent: one of {intents}
-vertical: one of {verticals} or null
-category: one of [{categories}] or null
-gender: "men" | "women" | "kids" | null
-brand: string or null
-color: string or null
+intent: one of {intents}  (deals = combos/platters or discounts; sales_overview = which restaurants have offers)
+vertical: "food" or null
+category: the dish, one of [{categories}] or null
+protein: "chicken" | "beef" | "mutton" | "fish" | "prawn" | "veg" | null
+brand: restaurant name or null
 min_price: number or null
 max_price: number or null
 on_sale: boolean
 sort: "relevance" | "price_asc" | "price_desc" | "discount" | "value" | "newest"
 cheaper_only: boolean (user explicitly wants cheaper alternatives)
-product_reference: short text naming a specific product the user wants alternatives for, or null
-Rules: "3k" = 3000, "1 lac" = 100000. "best value" -> sort value. Never invent filters the user didn't imply."""
+product_reference: short text naming a specific dish (and restaurant) the user wants compared, or null
+Rules: "1k" = 1000. "best value" -> sort value. "tikka" alone does not imply a protein. Never invent filters the user didn't imply."""
 
 
 def llm_understand(message: str, history: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -99,9 +100,9 @@ def sanitize_llm_filters(data: dict[str, Any]) -> dict[str, Any]:
     if data.get("category") in ALL_CATEGORIES:
         out["category"] = data["category"]
         out["vertical"] = ALL_CATEGORIES[data["category"]]
-    if data.get("gender") in {"men", "women", "kids"}:
-        out["gender"] = data["gender"]
-    for key in ("brand", "color", "product_reference"):
+    if data.get("protein") in {"chicken", "beef", "mutton", "fish", "prawn", "veg"}:
+        out["protein"] = data["protein"]
+    for key in ("brand", "product_reference"):
         if isinstance(data.get(key), str) and data[key].strip():
             out[key] = data[key].strip()[:120]
     for key in ("min_price", "max_price"):
@@ -125,9 +126,8 @@ def understand(
         for k, v in {
             "vertical": parsed.vertical,
             "category": parsed.category,
-            "gender": parsed.gender,
+            "protein": parsed.protein,
             "brand": parsed.brand,
-            "color": parsed.color,
             "min_price": parsed.min_price,
             "max_price": parsed.max_price,
             "on_sale": parsed.on_sale or None,

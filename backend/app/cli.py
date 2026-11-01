@@ -4,7 +4,11 @@ python -m app.cli init-db            # create tables (dev; use `alembic upgrade 
 python -m app.cli seed-demo          # load realistic demo data (offline)
 python -m app.cli scrape [slug ...]  # scrape now, inline (ops/backfill)
 python -m app.cli reindex            # rebuild the vector index
+python -m app.cli renormalize        # re-run dish detection on stored menus (after taxonomy changes)
 python -m app.cli alerts             # generate price-drop notifications
+python -m app.cli places-sync [slug ...]          # Google rating, address and reviews (needs GOOGLE_MAPS_API_KEY)
+python -m app.cli places-discover --city Lahore   # find restaurants on Google, detect their ordering platform
+python -m app.cli detect-platform site.pk ...     # which menu adapter a restaurant site can use
 """
 
 import argparse
@@ -26,7 +30,15 @@ def main(argv: list[str] | None = None) -> int:
     scrape.add_argument("stores", nargs="*")
     scrape.add_argument("--max-pages", type=int, default=None)
     sub.add_parser("reindex")
+    sub.add_parser("renormalize")
     sub.add_parser("alerts")
+    psync = sub.add_parser("places-sync")
+    psync.add_argument("stores", nargs="*")
+    pdisc = sub.add_parser("places-discover")
+    pdisc.add_argument("--city", required=True)
+    pdisc.add_argument("--query", action="append", help="repeatable; defaults to common cuisines")
+    detect = sub.add_parser("detect-platform")
+    detect.add_argument("sites", nargs="+")
     args = parser.parse_args(argv)
 
     if args.cmd == "init-db":
@@ -68,10 +80,43 @@ def main(argv: list[str] | None = None) -> int:
 
         with session_scope() as db:
             log.info("Indexed %d products", index_products(db, None))
+    elif args.cmd == "renormalize":
+        from app.db.session import session_scope
+        from app.services.indexing import index_products
+        from app.services.ingestion import renormalize_all
+
+        with session_scope() as db:
+            log.info("Re-categorised %d menu items", renormalize_all(db))
+            index_products(db, None)
     elif args.cmd == "alerts":
         from app.workers.tasks import generate_price_alerts
 
         log.info("Created %d notifications", generate_price_alerts())
+    elif args.cmd == "places-sync":
+        from app.db.session import session_scope
+        from app.services.places import sync_all
+
+        with session_scope() as db:
+            results = sync_all(db, args.stores or None)
+        log.info("Google Places: %d matched, %d not found", sum(results.values()), len(results) - sum(results.values()))
+    elif args.cmd == "places-discover":
+        from app.scrapers.platform_detect import detect_platform
+        from app.services.places import discover
+
+        places = discover(args.city, args.query)
+        print(f"# {len(places)} places on Google for {args.city}; ones with a supported menu platform are ready to add")
+        for p in places:
+            platform = detect_platform(p.website) if p.website else None
+            mark = "" if platform in {"indolj", "jsonld"} else "# "
+            print(
+                f'{mark}- {{name: "{p.name}", website: "{p.website or ""}", platform: {platform or "unknown"}, cities: [{args.city}]}}'
+                f"  # {p.rating or '-'} ({p.rating_count or 0} reviews)"
+            )
+    elif args.cmd == "detect-platform":
+        from app.scrapers.platform_detect import detect_platform
+
+        for site in args.sites:
+            print(site, detect_platform(site) or "unknown")
     return 0
 
 

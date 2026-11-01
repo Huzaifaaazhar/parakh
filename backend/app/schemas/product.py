@@ -15,6 +15,14 @@ class StoreOut(BaseModel):
     verticals: list[str] = []
     logo_url: str | None = None
     last_scraped_at: datetime | None = None
+    cuisines: list[str] = []
+    cities: list[str] = []
+    offers: list[dict[str, Any]] = []
+    rating: float | None = None
+    rating_count: int | None = None
+    price_level: str | None = None
+    address: str | None = None
+    maps_url: str | None = None
 
 
 class StoreSaleSummary(StoreOut):
@@ -47,6 +55,15 @@ class ProductOut(BaseModel):
     in_stock: bool
     is_on_sale: bool = False
     last_updated: datetime
+    description: str | None = None
+    store_slug: str | None = None
+    store_rating: float | None = None
+    store_logo: str | None = None
+    protein: str | None = None
+    portion: str | None = None
+    unit_price: float | None = None
+    unit_label: str | None = None
+    attributes: dict[str, Any] = {}
 
     @field_serializer("price", "original_price")
     def _money(self, v: Any) -> float:
@@ -99,6 +116,8 @@ class Facets(BaseModel):
     stores: list[FacetValue]
     genders: list[FacetValue]
     colors: list[FacetValue]
+    proteins: list[FacetValue] = []
+    cities: list[FacetValue] = []
     price_min: float = 0
     price_max: float = 0
 
@@ -114,6 +133,8 @@ class ProductQuery(BaseModel):
     store: list[str] | None = None
     color: str | None = None
     fabric: str | None = None
+    protein: str | None = None
+    city: str | None = None
     min_price: float | None = Field(default=None, ge=0)
     max_price: float | None = Field(default=None, ge=0)
     on_sale: bool = False

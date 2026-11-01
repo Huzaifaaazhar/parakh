@@ -4,14 +4,15 @@ from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, Numeric, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, JSONType, utcnow
+from app.services.normalization.portion import portion_label, unit_price
 
 
 class Product(Base):
-    """A normalised product listing.
+    """One priced menu item at one restaurant (each size is its own item).
 
-    Works for any vertical: fashion-specific fields (fabric, gender) are
-    nullable, and anything vertical-specific (e.g. RAM/storage for phones)
-    lives in `attributes`.
+    `category` is the dish ("tikka", "burger", "biryani"); `attributes` holds what makes
+    two dishes comparable: protein, pieces, size, pizza inches, serves, cut, menu section.
+    The fashion-era columns (gender, fabric, color) stay nullable and unused.
     """
 
     __tablename__ = "products"
@@ -59,6 +60,36 @@ class Product(Base):
     @property
     def is_on_sale(self) -> bool:
         return float(self.original_price or 0) > float(self.price or 0)
+
+    @property
+    def store_slug(self) -> str | None:
+        return self.store.slug if self.store else None
+
+    @property
+    def store_rating(self) -> float | None:
+        return self.store.rating if self.store else None
+
+    @property
+    def store_logo(self) -> str | None:
+        return self.store.logo_url if self.store else None
+
+    @property
+    def protein(self) -> str | None:
+        return (self.attributes or {}).get("protein")
+
+    @property
+    def portion(self) -> str | None:
+        return portion_label(self.attributes)
+
+    @property
+    def unit_price(self) -> float | None:
+        up = unit_price(self.price, self.attributes, self.category)
+        return up[0] if up else None
+
+    @property
+    def unit_label(self) -> str | None:
+        up = unit_price(self.price, self.attributes, self.category)
+        return up[1] if up else None
 
 
 class PriceHistory(Base):

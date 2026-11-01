@@ -16,7 +16,9 @@ class StoreConfig:
     verticals: list[str] = field(default_factory=lambda: ["fashion"])
     enabled: bool = True
     logo_url: str | None = None
-    default_gender: str | None = None  # audience when a product gives no signal (e.g. a womenswear-only brand)
+    default_gender: str | None = None  # unused for food; kept for config compatibility
+    cuisines: list[str] = field(default_factory=list)  # e.g. [bbq, burgers]; shown on the restaurant card
+    cities: list[str] = field(default_factory=list)  # fallback when the platform doesn't list branches
     max_pages: int | None = None
     fetcher: str | None = None  # override global fetcher mode per store
     collections: list[str] = field(default_factory=list)  # optional Shopify collection handles
@@ -32,6 +34,8 @@ class BaseScraper(ABC):
         # Set to True only when the scraper walked the *entire* catalogue without
         # errors or page limits; ingestion uses it to decide what has disappeared.
         self.complete = False
+        # Restaurant-level facts found while scraping (offers, cities served, ...); saved on the store.
+        self.meta: dict[str, Any] = {}
 
     @abstractmethod
     def iter_products(self) -> Iterator[RawProduct]:

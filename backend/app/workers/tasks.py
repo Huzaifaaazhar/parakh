@@ -33,7 +33,7 @@ def run_store_scrape(slug: str) -> dict:
         scraper = get_scraper(cfg)
         with session_scope() as db:
             run = db.get(ScrapeRun, run_id)
-            stats = ingest_products(db, cfg, scraper.iter_products(), run=run, complete=lambda: scraper.complete)
+            stats = ingest_products(db, cfg, scraper.iter_products(), run=run, complete=lambda: scraper.complete, meta=lambda: scraper.meta)
             if stats.seen == 0:
                 raise RuntimeError("Scrape returned no products (site down or layout changed?)")
             run.status, run.finished_at = "success", utcnow()
@@ -112,3 +112,15 @@ def index_products_task(product_ids: list[int] | None = None) -> int:
 @celery_app.task(name="app.workers.tasks.notify_price_alerts")
 def notify_price_alerts() -> int:
     return generate_price_alerts()
+
+
+@celery_app.task(name="app.workers.tasks.sync_google_places")
+def sync_google_places() -> dict:
+    """Refresh Google ratings/reviews for every restaurant; a no-op without GOOGLE_MAPS_API_KEY."""
+    from app.core.config import settings
+    from app.services.places import sync_all
+
+    if not settings.google_maps_api_key:
+        return {}
+    with session_scope() as db:
+        return sync_all(db)

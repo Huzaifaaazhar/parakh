@@ -5,9 +5,16 @@ import yaml
 from app.core.config import settings
 from app.scrapers.base import BaseScraper, StoreConfig
 from app.scrapers.html_generic import HtmlScraper
+from app.scrapers.indolj import IndoljScraper
+from app.scrapers.jsonld import JsonLdScraper
 from app.scrapers.shopify import ShopifyScraper
 
-ADAPTERS: dict[str, type[BaseScraper]] = {"shopify": ShopifyScraper, "html": HtmlScraper}
+ADAPTERS: dict[str, type[BaseScraper]] = {
+    "shopify": ShopifyScraper,
+    "html": HtmlScraper,
+    "indolj": IndoljScraper,
+    "jsonld": JsonLdScraper,
+}
 
 
 def load_store_configs(path: str | None = None, include_disabled: bool = False) -> list[StoreConfig]:

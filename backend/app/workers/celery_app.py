@@ -33,5 +33,10 @@ celery_app.conf.update(
             "schedule": crontab(minute=30, hour=4),
             "kwargs": {"product_ids": None},
         },
+        # Google asks for Places content to be refreshed rather than kept; weekly is plenty for ratings.
+        "google-places-weekly": {
+            "task": "app.workers.tasks.sync_google_places",
+            "schedule": crontab(minute=45, hour=3, day_of_week=1),
+        },
     },
 )

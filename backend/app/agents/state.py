@@ -19,6 +19,7 @@ class AgentState(TypedDict, total=False):
     products: list[dict[str, Any]]
     comparison: dict[str, Any] | None
     overview: dict[str, Any] | None
+    offers: dict[str, Any] | None  # restaurant-wide offers + combo deals (sales_overview)
     answer: str
     suggestions: list[str]
     used_llm: bool

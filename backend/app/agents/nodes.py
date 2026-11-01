@@ -15,9 +15,10 @@ from app.agents import intent as intent_mod
 from app.agents.state import AgentState
 from app.core.errors import AppError
 from app.core.logging import get_logger
-from app.services import comparison_service, deal_service, product_service
+from app.services import comparison_service, deal_service, product_service, restaurant_service
 from app.services.llm.router import get_llm
 from app.services.memory.memory import get_memory
+from app.services.normalization.taxonomy import CATEGORY_LABELS
 
 log = get_logger(__name__)
 
@@ -34,9 +35,8 @@ def _search_query(state: AgentState, text: str | None = None, page_size: int = M
         "q": text if text is not None else state["message"],
         "vertical": f.get("vertical"),
         "category": f.get("category"),
-        "gender": f.get("gender"),
+        "protein": f.get("protein"),
         "brand": [f["brand"]] if f.get("brand") else None,
-        "color": f.get("color"),
         "min_price": f.get("min_price"),
         "max_price": f.get("max_price"),
         "on_sale": bool(f.get("on_sale")),
@@ -154,24 +154,33 @@ def deal_agent(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
     f = state.get("filters") or {}
     intent = state.get("intent")
     if intent == "sales_overview":
-        overview = deal_service.sales_overview(db, vertical=f.get("vertical"))
-        return {"overview": overview, "products": overview["top_deals"][:MAX_PRODUCTS], "trace": ["deal_agent: sales overview"]}
+        offers = restaurant_service.offers(db, limit=MAX_PRODUCTS)
+        return {"offers": offers, "products": offers["deal_items"][:MAX_PRODUCTS], "trace": ["deal_agent: restaurant offers"]}
     if intent == "price_drops":
         drops = deal_service.get_price_drops(db, days=14, limit=MAX_PRODUCTS, vertical=f.get("vertical"))
         products = [{**d["product"], "old_price": d["old_price"], "drop_percentage": d["drop_percentage"]} for d in drops]
         return {"products": products, "trace": [f"deal_agent: {len(drops)} price drops"]}
-    query = {k: v for k, v in _search_query(state, text="").items() if k != "q"}
-    query["sort"] = f.get("sort") if f.get("sort") in {"price_asc", "savings", "newest"} else "discount"
-    deals = deal_service.get_deals(db, query=query)
-    return {"products": deals["items"], "trace": [f"deal_agent: {deals['total']} deals"]}
+    if f.get("on_sale"):  # "offers on burgers": dishes priced below their menu price
+        query = {k: v for k, v in _search_query(state, text="").items() if k != "q"}
+        query["sort"] = f.get("sort") if f.get("sort") in {"price_asc", "savings", "newest"} else "discount"
+        deals = deal_service.get_deals(db, query=query)
+        if deals["items"]:
+            return {"products": deals["items"], "trace": [f"deal_agent: {deals['total']} discounted dishes"]}
+    # "burger deals": combo boxes and platters, cheapest first, matching any dish words
+    query = _search_query(state)
+    query["category"], query["vertical"] = "deal", "food"
+    query["sort"] = f.get("sort") or "price_asc"
+    result = product_service.search_products(db, query=query)
+    return {"products": result["items"], "trace": [f"deal_agent: {result['total']} combo deals"]}
 
 
 # ---------------------------------------------------------------- agent 4: chat assistant
-ASSISTANT_PROMPT = """You are Parakh, a friendly shopping assistant that compares products and sales across Pakistani online stores.
-Answer using ONLY the data in CONTEXT. Prices are in PKR; write them like "Rs 2,499".
-Be concise (max ~120 words): one-line takeaway, then up to 5 bullet picks with store, price and discount if any.
-For comparisons, point out the cheapest option and how much it saves. If CONTEXT is empty, say you found nothing and suggest how to broaden the search.
-Never invent products, prices or stores."""
+ASSISTANT_PROMPT = """You are Parakh, a friendly food guide that compares the same dish across Pakistani restaurants.
+Answer using ONLY the data in CONTEXT. Prices are in PKR; write them like "Rs 1,450".
+Be concise (max ~120 words): one-line takeaway, then up to 5 bullet picks with restaurant, price, portion and any offer.
+When portions differ, compare the price per piece / per person given in CONTEXT rather than the plate price.
+For comparisons, point out the cheapest like-for-like option and how much it saves. If CONTEXT is empty, say you found
+nothing and suggest how to broaden the search. Never invent dishes, prices, restaurants or reviews."""
 
 
 def _money(v: Any) -> str:
@@ -180,6 +189,8 @@ def _money(v: Any) -> str:
 
 def _bullet(p: dict[str, Any]) -> str:
     line = f"• {p['product_name']} — {_money(p['price'])} at {p.get('store_name') or p['brand_name']}"
+    if p.get("unit_price") and p.get("unit_label"):
+        line += f" ({_money(p['unit_price'])} {p['unit_label']})"
     if p.get("drop_percentage"):
         line += f" (dropped {p['drop_percentage']:.0f}% from {_money(p['old_price'])})"
     elif p.get("discount_percentage"):
@@ -189,18 +200,14 @@ def _bullet(p: dict[str, Any]) -> str:
 
 def _describe_filters(f: dict[str, Any]) -> str:
     parts = []
-    if f.get("color"):
-        parts.append(f["color"])
+    if f.get("protein"):
+        parts.append(f["protein"])
     if f.get("category"):
-        parts.append(f["category"].replace("-", " "))
-    elif f.get("vertical"):
-        parts.append(f"{f['vertical']} items")
+        parts.append(CATEGORY_LABELS.get(f["category"], f["category"]).lower())
     else:
-        parts.append("items")
-    if f.get("gender"):
-        parts.append(f"for {f['gender']}")
+        parts.append("dishes")
     if f.get("brand"):
-        parts.append(f"from {f['brand']}")
+        parts.append(f"at {f['brand']}")
     if f.get("min_price") and f.get("max_price"):
         parts.append(f"between {_money(f['min_price'])} and {_money(f['max_price'])}")
     elif f.get("max_price"):
@@ -216,34 +223,39 @@ def template_answer(state: AgentState) -> str:
     f = state.get("filters") or {}
     if intent == "greeting":
         return (
-            "Assalam o Alaikum! I'm Parakh. I compare prices and sales across Pakistani stores — clothes, shoes, "
-            "electronics, beauty and home. Try “best kurtas under 3000 for women”, “earbuds on sale”, "
-            "“which stores have sales right now?” or open a product and ask for cheaper alternatives."
+            "Assalam o Alaikum! I'm Parakh. I compare the same dish across Pakistani restaurants — tikka, karahi, "
+            "biryani, burgers, pizza and more — with prices per portion and live offers. Try “chicken tikka under 800”, "
+            "“burger deals”, “which restaurants have offers?” or open a dish and ask where it's cheaper."
         )
     if intent == "compare" and state.get("comparison"):
         comp = state["comparison"]
         lines = [
             comp["summary"],
-            *[_bullet(a["product"]) + (" — same product" if a["match_type"] == "same_product" else "") for a in comp["alternatives"][:5]],
+            *[
+                _bullet(a["product"]) + (" — same dish & portion" if a["match_type"] == "same_dish" else "")
+                for a in comp["alternatives"][:5]
+            ],
         ]
         return "\n".join(lines)
-    if intent == "sales_overview" and state.get("overview"):
-        ov = state["overview"]
-        stores = [s for s in ov["stores"] if s["on_sale"]][:6]
-        lines = [
-            f"{ov['total_on_sale']:,} of {ov['total_products']:,} products are on sale right now (average {ov['average_discount']:.0f}% off)."
-        ]
-        lines += [f"• {s['name']}: {s['on_sale']} items on sale, up to {s['max_discount']:.0f}% off" for s in stores]
-        if products:
-            lines.append("Biggest discounts:")
-            lines += [_bullet(p) for p in products[:3]]
+    if intent == "sales_overview" and state.get("offers") is not None:
+        offers = state["offers"]["restaurant_offers"]
+        if not offers:
+            lines = ["No restaurant-wide offers are running right now. Combo deals with the lowest prices:"]
+        else:
+            lines = [f"{len(offers)} restaurant offer(s) running now:"]
+            lines += [
+                f"• {o['restaurant']['name']}: {o['offer']['title']} — {o['offer'].get('detail') or ''}".rstrip(" —") for o in offers[:6]
+            ]
+            if products:
+                lines.append("Cheapest combo deals:")
+        lines += [_bullet(p) for p in products[:3]]
         return "\n".join(lines)
     if not products:
-        return f"I couldn't find {_describe_filters(f)} right now. Try a higher budget, a broader category, or removing the brand/colour."
+        return f"I couldn't find {_describe_filters(f)} right now. Try a higher budget, another dish, or removing the restaurant."
     if intent == "price_drops":
         head = "Recent price drops:"
     elif intent == "deals":
-        head = f"Top deals on {_describe_filters(f)}:"
+        head = "Deals and combos:" if f.get("category") in (None, "deal") else f"Offers on {_describe_filters(f)}:"
     else:
         head = f"Top matches — {_describe_filters(f)}:"
     return "\n".join([head, *[_bullet(p) for p in products[:5]]])
@@ -252,14 +264,14 @@ def template_answer(state: AgentState) -> str:
 def _suggestions(state: AgentState) -> list[str]:
     intent = state.get("intent")
     f = state.get("filters") or {}
-    cat = (f.get("category") or "items").replace("-", " ")
+    cat = CATEGORY_LABELS.get(f.get("category") or "", "dishes").lower()
     if intent == "compare":
-        return ["Show only cheaper ones", f"Best value {cat}", f"{cat} on sale"]
+        return ["Show only cheaper ones", f"Best value {cat}", "Which restaurants have offers?"]
     if intent in {"deals", "price_drops", "sales_overview"}:
-        return ["Which stores have sales?", "Recent price drops", "Electronics on sale"]
+        return ["Which restaurants have offers?", "Burger deals", "Pizza deals under 3000"]
     if intent == "greeting":
-        return ["Best shirts under 3000", "Earbuds on sale", "Which stores have sales?"]
-    return [f"Cheaper {cat}", f"{cat} on sale", "Compare alternatives to the first one"]
+        return ["Chicken tikka under 800", "Burger deals", "Which restaurants have offers?"]
+    return [f"Cheapest {cat}", f"{cat} deals", "Where is the first one cheaper?"]
 
 
 def chat_assistant(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
@@ -276,8 +288,11 @@ def chat_assistant(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
             "original_price",
             "discount_percentage",
             "category",
-            "color",
-            "fabric",
+            "protein",
+            "portion",
+            "unit_price",
+            "unit_label",
+            "store_rating",
             "in_stock",
         )
         context: dict[str, Any] = {
@@ -287,8 +302,11 @@ def chat_assistant(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
         }
         if state.get("comparison"):
             context["comparison_summary"] = state["comparison"]["summary"]
-        if state.get("overview"):
-            context["stores_on_sale"] = [{k: s[k] for k in ("name", "on_sale", "max_discount")} for s in state["overview"]["stores"][:8]]
+        if state.get("offers"):
+            context["restaurant_offers"] = [
+                {"restaurant": o["restaurant"]["name"], **{k: o["offer"].get(k) for k in ("title", "detail")}}
+                for o in state["offers"]["restaurant_offers"][:8]
+            ]
         messages = [{"role": "system", "content": ASSISTANT_PROMPT}]
         if state.get("recalled"):
             messages.append({"role": "system", "content": "Things the user told you before:\n" + "\n".join(state["recalled"][:3])})

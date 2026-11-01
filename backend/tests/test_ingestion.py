@@ -5,11 +5,13 @@ from app.scrapers.base import StoreConfig
 from app.services.ingestion import ingest_products
 from app.services.normalization.normalizer import RawProduct
 
-CFG = StoreConfig("ingest-test", "Ingest Test", "https://ingest.pk", verticals=["fashion"])
+CFG = StoreConfig("ingest-test", "Ingest Test", "https://ingest.pk", verticals=["food"])
 
 
 def raw(ext: str, price: float, original: float | None = None, in_stock: bool = True) -> RawProduct:
-    return RawProduct(ext, f"Men Cotton Kurta {ext}", f"https://ingest.pk/p/{ext}", price=price, original_price=original, in_stock=in_stock)
+    return RawProduct(
+        ext, f"Chicken Karahi (Half) {ext}", f"https://ingest.pk/p/{ext}", price=price, original_price=original, in_stock=in_stock
+    )
 
 
 def events(db, product_id: int) -> list[str]:
@@ -20,7 +22,7 @@ def test_new_items_then_price_drop_and_stock_changes(db):
     stats = ingest_products(db, CFG, [raw("a", 3000), raw("b", 2000), raw("c", 1500)])
     assert stats.new == 3
     a = db.scalar(select(Product).where(Product.external_id == "a"))
-    assert a.category == "kurta" and a.gender == "men"
+    assert a.category == "karahi" and a.attributes["protein"] == "chicken" and a.attributes["size"] == "half"
 
     # Second run: "a" drops 20%, "b" sells out, "c" disappears from the catalogue.
     stats = ingest_products(db, CFG, [raw("a", 2400, 3000), raw("b", 2000, in_stock=False)])
@@ -45,7 +47,7 @@ def test_new_items_then_price_drop_and_stock_changes(db):
 
 
 def test_incomplete_run_does_not_mark_missing_items(db):
-    cfg = StoreConfig("partial-test", "Partial", "https://partial.pk", verticals=["fashion"])
+    cfg = StoreConfig("partial-test", "Partial", "https://partial.pk", verticals=["food"])
     ingest_products(db, cfg, [raw("x", 1000), raw("y", 1000)])
     stats = ingest_products(db, cfg, [raw("x", 1000)], complete=lambda: False)
     assert stats.out_of_stock == 0
@@ -54,7 +56,18 @@ def test_incomplete_run_does_not_mark_missing_items(db):
 
 
 def test_small_jitter_is_not_a_price_drop(db):
-    cfg = StoreConfig("jitter-test", "Jitter", "https://jitter.pk", verticals=["fashion"])
+    cfg = StoreConfig("jitter-test", "Jitter", "https://jitter.pk", verticals=["food"])
     ingest_products(db, cfg, [raw("j", 1000)])
     stats = ingest_products(db, cfg, [raw("j", 995)])
     assert stats.price_drops == 0
+
+
+def test_restaurant_meta_is_saved(db):
+    from app.models import Store
+
+    cfg = StoreConfig("meta-test", "Meta Grill", "https://meta.pk", verticals=["food"], cuisines=["bbq"], cities=["Lahore"])
+    offer = {"id": "o1", "title": "20% off", "percent": 20.0}
+    ingest_products(db, cfg, [raw("m", 900)], meta=lambda: {"offers": [offer], "cities": ["Karachi"], "delivery_areas": 40})
+    store = db.scalar(select(Store).where(Store.slug == "meta-test"))
+    assert store.offers == [offer] and store.cities == ["Karachi", "Lahore"]
+    assert store.cuisines == ["bbq"] and store.delivery_areas == 40

@@ -4,7 +4,7 @@ import math
 from statistics import median
 from typing import Any
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, String, and_, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.cache import cached
@@ -42,6 +42,12 @@ def apply_filters(stmt: Select, q: ProductQuery) -> Select:
         conds.append(Product.color == q.color.lower())
     if q.fabric:
         conds.append(Product.fabric == q.fabric.lower())
+    if q.protein:
+        conds.append(Product.attributes["protein"].as_string() == q.protein.lower())
+    if q.city:
+        # cities is a JSON list; matching the quoted name in its text form works on SQLite and Postgres.
+        city = q.city.strip().title().replace('"', "")
+        conds.append(Product.store_id.in_(select(Store.id).where(cast(Store.cities, String).like(f'%"{city}"%'))))
     if q.min_price is not None:
         conds.append(Product.price >= q.min_price)
     if q.max_price is not None:
@@ -132,6 +138,7 @@ def filters_to_query(f: SearchFilters, overrides: dict[str, Any]) -> ProductQuer
         "brand": [f.brand] if f.brand else None,
         "color": f.color,
         "fabric": f.fabric,
+        "protein": f.protein,
         "min_price": f.min_price,
         "max_price": f.max_price,
         "on_sale": f.on_sale,
@@ -182,7 +189,8 @@ def search_products(db: Session, *, query: dict[str, Any]) -> dict[str, Any]:
     q = filters_to_query(parsed, {k: v for k, v in query.items() if k != "q"})
 
     # Remove words already captured as structured filters to avoid double-filtering.
-    consumed = {x for x in (parsed.category, parsed.color, parsed.fabric, parsed.gender) if x}
+    consumed = {x for x in (parsed.category, parsed.color, parsed.fabric, parsed.gender, parsed.protein) if x}
+    consumed |= set(parsed.consumed_words)
     consumed |= {w for x in consumed for w in x.split("-")}
     if parsed.brand:
         consumed |= set(parsed.brand.lower().split())
@@ -222,6 +230,14 @@ def search_products(db: Session, *, query: dict[str, Any]) -> dict[str, Any]:
 
 
 @cached("facets", ttl=900)
+def _city_counts(db: Session) -> list[dict[str, Any]]:
+    counter: dict[str, int] = {}
+    for store in db.scalars(select(Store).where(Store.is_active.is_(True))):
+        for city in store.cities or []:
+            counter[city] = counter.get(city, 0) + 1
+    return [{"value": c, "count": n} for c, n in sorted(counter.items(), key=lambda x: -x[1])]
+
+
 def facets(db: Session, *, vertical: str | None = None) -> dict[str, Any]:
     base = [Product.is_active.is_(True)]
     if vertical:
@@ -248,6 +264,8 @@ def facets(db: Session, *, vertical: str | None = None) -> dict[str, Any]:
         "stores": [{"value": s, "count": c} for s, c in store_rows],
         "genders": counts(Product.gender),
         "colors": counts(Product.color),
+        "proteins": counts(Product.attributes["protein"].as_string()),
+        "cities": _city_counts(db),
         "price_min": float(pmin or 0),
         "price_max": float(pmax or 0),
     }

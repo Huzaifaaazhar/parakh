@@ -19,6 +19,8 @@ def product_query(
     store: Annotated[list[str] | None, Query()] = None,
     color: str | None = None,
     fabric: str | None = None,
+    protein: str | None = None,
+    city: str | None = None,
     min_price: Annotated[float | None, Query(ge=0)] = None,
     max_price: Annotated[float | None, Query(ge=0)] = None,
     on_sale: bool = False,
@@ -31,14 +33,14 @@ def product_query(
     return ProductQuery(**{k: v for k, v in locals().items()})
 
 
-@router.get("", response_model=ProductPage, summary="Browse products with filters")
+@router.get("", response_model=ProductPage, summary="Browse dishes with filters")
 def list_products(query: ProductQuery = Depends(product_query), db: Session = Depends(get_db)):
     return product_service.list_products(db, query=query.model_dump(exclude={"q"}))
 
 
 @router.get("/search", response_model=SearchResponse, summary="Natural-language + semantic search")
 def search(
-    q: Annotated[str, Query(min_length=1, max_length=200, description="e.g. 'black kurta under 3000 for men'")],
+    q: Annotated[str, Query(min_length=1, max_length=200, description="e.g. 'chicken tikka under 800' or 'large pizza deals'")],
     query: ProductQuery = Depends(product_query),
     db: Session = Depends(get_db),
 ):

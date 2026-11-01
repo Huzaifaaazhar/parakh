@@ -49,7 +49,22 @@ def get_or_create_store(db: Session, cfg: StoreConfig) -> Store:
         store.name, store.website, store.platform, store.verticals = cfg.name, cfg.website, cfg.platform, cfg.verticals
     if cfg.logo_url:
         store.logo_url = cfg.logo_url
+    if cfg.cuisines:
+        store.cuisines = cfg.cuisines
+    if cfg.cities and not store.cities:
+        store.cities = cfg.cities
     return store
+
+
+def apply_store_meta(store: Store, cfg: StoreConfig, meta: dict[str, Any]) -> None:
+    """Save restaurant-level facts the scraper found (offers, cities served, delivery areas)."""
+    if "offers" in meta:
+        store.offers = meta["offers"] or []
+    cities = sorted(set(meta.get("cities") or []) | set(cfg.cities or []))
+    if cities:
+        store.cities = cities
+    if meta.get("delivery_areas"):
+        store.delivery_areas = int(meta["delivery_areas"])
 
 
 def _f(value: Any) -> float:
@@ -136,6 +151,7 @@ def ingest_products(
     run: ScrapeRun | None = None,
     complete: bool | Callable[[], bool] = True,
     batch_size: int = 200,
+    meta: dict[str, Any] | Callable[[], dict[str, Any]] | None = None,
 ) -> IngestStats:
     store = get_or_create_store(db, cfg)
     stats = IngestStats()
@@ -147,7 +163,9 @@ def ingest_products(
     for raw in raw_products:
         stats.seen += 1
         try:
-            record = normalize(raw, store_name=cfg.name, allowed_verticals=cfg.verticals, default_gender=cfg.default_gender)
+            record = normalize(
+                raw, store_name=cfg.name, allowed_verticals=cfg.verticals, default_gender=cfg.default_gender, cuisines=cfg.cuisines
+            )
         except Exception as exc:  # noqa: BLE001
             log.warning("[%s] normalisation failed for %s: %s", cfg.slug, raw.external_id, exc)
             record = None
@@ -187,6 +205,9 @@ def ingest_products(
                 stats.changed_ids.add(product.id)
 
     store.last_scraped_at = now
+    store_meta = meta() if callable(meta) else meta
+    if store_meta:
+        apply_store_meta(store, cfg, store_meta)
     if run:
         run.items_seen, run.items_new, run.items_updated = stats.seen, stats.new, stats.updated
         run.price_drops, run.out_of_stock = stats.price_drops, stats.out_of_stock
@@ -203,3 +224,33 @@ def ingest_products(
         stats.skipped,
     )
     return stats
+
+
+def renormalize_all(db: Session) -> int:
+    """Re-run dish detection over stored menu items (after taxonomy changes) without re-scraping."""
+    from app.scrapers.registry import load_store_configs
+
+    cfgs = {c.slug: c for c in load_store_configs(include_disabled=True)}
+    changed = 0
+    for product in db.scalars(select(Product)).unique():
+        cfg = cfgs.get(product.store.slug) if product.store else None
+        attrs = product.attributes or {}
+        raw = RawProduct(
+            external_id=product.external_id,
+            title=product.product_name,
+            url=product.product_url,
+            price=product.price,
+            original_price=product.original_price,
+            description=product.description,
+            product_type=attrs.get("menu_section"),
+            image_url=product.image_url,
+            in_stock=product.in_stock,
+            extra={"menu_section": attrs.get("menu_section"), "size": attrs.get("size_label")},
+        )
+        record = normalize(raw, store_name=product.store_name or "", allowed_verticals=["food"], cuisines=cfg.cuisines if cfg else None)
+        if record and (record["category"] != product.category or record["attributes"] != attrs):
+            product.category, product.attributes, product.vertical = record["category"], record["attributes"], record["vertical"]
+            changed += 1
+    db.flush()
+    cache.invalidate_all()
+    return changed

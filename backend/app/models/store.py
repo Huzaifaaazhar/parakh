@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, JSONType, utcnow
 
 
 class Store(Base):
-    """A retailer we collect products from (a brand's own site or a multi-brand shop)."""
+    """A restaurant (brand) whose menu we collect from its own ordering site."""
 
     __tablename__ = "stores"
 
@@ -21,6 +21,24 @@ class Store(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_scraped_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+    # --- Restaurant facts (from its ordering site) ---
+    cuisines: Mapped[list] = mapped_column(JSONType, default=list)
+    cities: Mapped[list] = mapped_column(JSONType, default=list)
+    offers: Mapped[list] = mapped_column(JSONType, default=list)  # restaurant-wide deals, e.g. 20% off delivery
+    delivery_areas: Mapped[int] = mapped_column(Integer, default=0)
+
+    # --- Google Places (filled by places-sync when a key is configured) ---
+    google_place_id: Mapped[str | None] = mapped_column(String(300), index=True)
+    rating: Mapped[float | None] = mapped_column(Float)
+    rating_count: Mapped[int | None] = mapped_column(Integer)
+    price_level: Mapped[str | None] = mapped_column(String(40))
+    address: Mapped[str | None] = mapped_column(String(500))
+    phone: Mapped[str | None] = mapped_column(String(60))
+    maps_url: Mapped[str | None] = mapped_column(String(1000))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
+    google_synced_at: Mapped[datetime | None]
 
     products = relationship("Product", back_populates="store")
 

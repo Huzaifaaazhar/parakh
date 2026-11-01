@@ -1,20 +1,15 @@
 """Rule-based natural-language query -> structured filters.
 
 Used by GET /products/search and as the no-LLM fallback for the agents.
-Handles PKR price expressions ("under 3000", "below 3k", "2-5k",
-"between 2000 and 5000", "around 4000"), gender, category synonyms,
-colour, fabric, brand names and intent words ("sale", "cheapest", "best value").
+Handles PKR price expressions ("under 800", "below 2k", "1-2k", "around 1500"),
+dishes ("tikka", "zinger", "biryani"), protein ("beef", "mutton"), restaurant names
+and intent words ("deal", "offer", "cheapest", "best value").
 """
 
 import re
 from dataclasses import asdict, dataclass, field
 
-from app.services.normalization.taxonomy import (
-    detect_color,
-    detect_fabric,
-    detect_gender,
-    find_categories_in_text,
-)
+from app.services.normalization.taxonomy import detect_protein, find_categories_in_text
 
 _NUM = r"(\d+(?:[.,]\d+)?)\s*(k|thousand|lac|lakh)?"
 _UNDER = re.compile(rf"(?:under|below|less than|upto|up to|within|max|maximum|<|budget(?: of)?)\s*(?:rs\.?|pkr)?\s*{_NUM}", re.I)
@@ -92,6 +87,15 @@ _STOPWORDS = {
     "options",
     "option",
     "k",
+    "offer",
+    "offers",
+    "off",
+    "combo",
+    "combos",
+    "near",
+    "restaurant",
+    "restaurants",
+    "food",
 }
 
 
@@ -114,12 +118,14 @@ class SearchFilters:
     brand: str | None = None
     color: str | None = None
     fabric: str | None = None
+    protein: str | None = None
     min_price: float | None = None
     max_price: float | None = None
     on_sale: bool = False
     in_stock: bool = True
     sort: str = "relevance"  # relevance|price_asc|price_desc|discount|newest|value
     keywords: list[str] = field(default_factory=list)
+    consumed_words: list[str] = field(default_factory=list)  # words turned into filters (not re-matched as text)
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -147,12 +153,16 @@ def parse_query(query: str, known_brands: list[str] | None = None) -> SearchFilt
         target = _to_pkr(m.group(1), m.group(2))
         f.min_price, f.max_price = round(target * 0.8), round(target * 1.2)
 
-    categories = find_categories_in_text(lower)
-    if categories:
+    # "deal(s)"/"combo" ask for bundles; "offer"/"discount"/"off" ask for reduced prices.
+    categories = [c for c in find_categories_in_text(lower) if c[1] != "deal"]
+    if re.search(r"\b(deals?|combos?|platters?|meal box|bucket)\b", lower):
+        f.vertical, f.category = "food", "deal"  # "burger deals" = deals with a burger in them
+    elif categories:
         f.vertical, f.category = categories[0]
-    f.gender = detect_gender(lower)
-    f.color = detect_color(lower)
-    f.fabric = detect_fabric(lower)
+    f.protein = detect_protein(lower) if f.category not in {"drink", "shake", "chai-coffee", "dessert", "ice-cream"} else None
+    if f.protein == "chicken" and not re.search(r"\b(chicken|murgh)\b", lower):
+        f.protein = None  # "tikka" alone shouldn't exclude beef tikka
+    f.consumed_words = [w for w in re.findall(r"[a-z]+", lower) if w in {"chicken", "beef", "mutton", "fish", "prawn", "veg", "murgh"}]
 
     if known_brands:
         for brand in sorted(known_brands, key=len, reverse=True):
@@ -160,7 +170,7 @@ def parse_query(query: str, known_brands: list[str] | None = None) -> SearchFilt
                 f.brand = brand
                 break
 
-    if re.search(r"\b(sale|sales|deal|deals|discount|discounted|off|offer|offers)\b", lower):
+    if re.search(r"\b(sale|sales|discount|discounted|off|offer|offers)\b", lower):
         f.on_sale = True
         f.sort = "discount"
     if re.search(r"\b(cheapest|lowest price|low to high|cheap|affordable)\b", lower):

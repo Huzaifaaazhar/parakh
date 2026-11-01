@@ -1,4 +1,4 @@
-"""Turn a raw scraped record into a clean, comparable product dict."""
+"""Turn a raw scraped menu item into a clean, comparable dish record."""
 
 import hashlib
 import html
@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.services.normalization.taxonomy import detect_category, detect_color, detect_fabric, detect_gender
+from app.services.normalization.taxonomy import detect_category, detect_gender, detect_portion, detect_protein
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
@@ -124,53 +124,6 @@ def is_generic_brand(brand: str | None) -> bool:
     return False
 
 
-# Children's sizes: "6-7Y", "3-4 years", "12-18M", "8Y", "toddler"…
-_KID_SIZE_RE = re.compile(
-    r"(?<![a-z0-9])\d{1,2}\s*[-–]\s*\d{1,2}\s*(?:y|yr|yrs|years?|m|months?)(?![a-z])"
-    r"|(?<![a-z0-9])\d{1,2}\s*(?:y|yrs|years)(?![a-z0-9])"
-    r"|(?<![a-z])(?:newborn|toddler|infant)(?![a-z])",
-    re.I,
-)
-_ADULT_SIZES = {"xxs", "xs", "s", "m", "l", "xl", "xxl", "xxxl", "2xl", "3xl", "small", "medium", "large", "x-large"}
-# Garments that in Pakistani retail are (almost) only womenswear.
-_WOMENSWEAR_RE = re.compile(
-    r"(?<![a-z])(pret|kurti|abaya|dupatta|lawn suit|unstitched|co-ord|culottes?|saree|lehenga|maxi|kaftan)(?![a-z])", re.I
-)
-
-
-def detect_audience(
-    title: str,
-    product_type: str | None,
-    tags: list[str],
-    url: str | None,
-    sizes: list[str],
-    default_gender: str | None = None,
-) -> str | None:
-    """Who a clothing item is for: men | women | kids | unisex | None (unknown).
-
-    Signals in order of trust:
-    1. age sizes ("6-7Y", "2 Y", "12-18M") — an item sold in ages is for children;
-    2. explicit words in the title;
-    3. tags / URL (a "kids" tag is ignored when every size is an adult letter size);
-    4. product type (often an internal department name, e.g. J.'s "Men Division"
-       is also used for boys' clothes, hence its low rank);
-    5. womenswear-only garments (pret, kurti, dupatta…), then the store default.
-    """
-    if _KID_SIZE_RE.search(" ".join([*sizes, *tags])):
-        return "kids"
-    if gender := detect_gender(title):
-        return gender
-    adult_sizes = bool(sizes) and all(s.strip().lower() in _ADULT_SIZES for s in sizes)
-    gender = detect_gender(" ".join(tags), url)
-    if gender and not (gender == "kids" and adult_sizes):
-        return gender
-    if gender := detect_gender(product_type):
-        return gender
-    if _WOMENSWEAR_RE.search(f"{title} {' '.join(tags)}"):
-        return "women"
-    return default_gender
-
-
 def compute_discount(price: float, original: float) -> float:
     if original and original > price > 0:
         return round((original - price) / original * 100, 1)
@@ -178,7 +131,12 @@ def compute_discount(price: float, original: float) -> float:
 
 
 def normalize(
-    raw: RawProduct, *, store_name: str, allowed_verticals: list[str] | None = None, default_gender: str | None = None
+    raw: RawProduct,
+    *,
+    store_name: str,
+    allowed_verticals: list[str] | None = None,
+    default_gender: str | None = None,
+    cuisines: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """Return a dict ready for the Product model, or None if the record is unusable."""
     price = parse_price(raw.price)
@@ -190,33 +148,50 @@ def normalize(
 
     title = clean_title(raw.title)
     description = clean_text(raw.description, limit=4000)
-    tags_text = " ".join(raw.tags)
-    option_text = " ".join(" ".join(v) for v in raw.options.values())
+    section = clean_text(raw.extra.get("menu_section") or raw.product_type, 80)
+    size_label = clean_text(raw.extra.get("size"), 60)
+    # Title first; the menu section ("BBQ", "CLASSIC BURGERS") rescues vague names like "Tooso Special";
+    # the description is last because deal descriptions list every item in the box.
+    vertical, category = detect_category(title, section, description, allowed=allowed_verticals or ["food"])
+    if category != "deal" and re.search(r"(?<![a-z])(deal|combo|platter|bucket|meal)(?![a-z])", section or "", re.I):
+        category = "deal"
+    # Extras and sauces: anything in an "Add Ons"/"Dips" section, a bare "... Sauce", or "Extra X" when X
+    # isn't itself a dish ("Extra Olives" is an add-on, "Extra Cheese Pizza" is a pizza).
+    addon_section = re.search(r"(?<![a-z])(extras?|add[- ]?ons?|dips?|sauces?|toppings?)(?![a-z])", section or "", re.I)
+    addon_title = re.fullmatch(r"[\w &'.-]{0,30}\b(sauce|dip|mayo)\.?", title, re.I) or (
+        re.match(r"(extra|add[- ]?on)\b", title, re.I) and detect_category(title)[1] == "other"
+    )
+    if addon_section or addon_title:
+        category = "add-on"
 
-    vertical, category = detect_category(title, raw.product_type, tags_text, description, allowed=allowed_verticals)
-    if category == "other" and allowed_verticals and len(allowed_verticals) > 1:
-        # Multi-department stores (e.g. Telemart) list items outside their declared
-        # verticals. Trust only the title here: tags and descriptions are too noisy
-        # (an eye cream must not become a "shirt" because of a navigation tag).
-        alt_vertical, alt_category = detect_category(title)
-        if alt_category != "other":
-            vertical, category = alt_vertical, alt_category
-
-    gender = None
-    if vertical in {"fashion", "beauty"}:
-        sizes = [v for k, vals in raw.options.items() if "size" in k or "age" in k for v in vals]
-        gender = detect_audience(title, raw.product_type, raw.tags, raw.url, sizes, default_gender if vertical == "fashion" else None)
+    # A pizza place names its pizzas by flavour ("Afghani (Large)"); a mandi house its mandi by meat.
+    # Pizza places name pizzas after toppings ("Creamy Tikka (Large)"), so a sized topping-named item is a pizza there.
+    pizza_toppings = {"other", "tikka", "boti", "kabab", "bbq-platter", "chargha", "steak", "seafood", "salad", "daal-veg"}
+    if cuisines and category in pizza_toppings:
+        hint = next((c for c in ("pizza", "mandi") if c in cuisines), None)
+        sized = detect_portion(f"{title} {size_label or ''}")
+        if hint == "pizza" and (sized.get("inches") or sized.get("size") or re.search(r"crust|flavou?r", f"{title} {section}", re.I)):
+            category = "pizza"
+        elif hint == "mandi" and category == "other" and re.search(r"mutton|chicken|beef|lamb|family", title, re.I):
+            category = "mandi"
 
     attributes: dict[str, Any] = {}
-    if vertical == "electronics":
-        attributes.update(extract_specs(f"{title} {option_text} {description or ''}"))
-    else:
-        specs = extract_specs(title)
-        attributes.update({k: v for k, v in specs.items() if k in {"pieces", "volume_ml"}})
-    if raw.options:
-        attributes["options"] = {k: v[:20] for k, v in raw.options.items()}
-    if raw.product_type:
-        attributes["source_type"] = clean_text(raw.product_type, 80)
+    protein = detect_protein(title, size_label) or detect_protein(section)
+    if protein and category not in {"drink", "shake", "chai-coffee", "dessert", "ice-cream", "fries", "bread"}:
+        attributes["protein"] = protein
+    portion = {**detect_portion(description if category == "deal" else None), **detect_portion(title), **detect_portion(size_label)}
+    attributes.update(portion)
+    if category == "deal" and description:
+        # "1 Club Sandwich + 4 Pcs Crispy Chicken + 5 Drinks" -> 3 parts
+        parts = [p for p in re.split(r"\s*(?:\+|,|&|\band\b)\s*", description) if len(p.strip()) > 2]
+        attributes["deal_parts"] = len(parts)
+    if cut := re.search(r"(?<![a-z])(leg|chest|thigh|breast|boneless)(?![a-z])", f"{title} {size_label or ''}", re.I):
+        attributes["cut"] = cut.group(1).lower()
+    if section:
+        attributes["menu_section"] = section
+    if size_label:
+        attributes["size_label"] = size_label
+    gender = None
 
     brand = clean_text(raw.brand, 160) or store_name
     if is_generic_brand(brand):
@@ -234,8 +209,8 @@ def normalize(
         "original_price": round(original, 2),
         "discount_percentage": compute_discount(price, original),
         "currency": "PKR",
-        "fabric": detect_fabric(title, tags_text, description) if vertical in {"fashion", "home"} else None,
-        "color": detect_color(title, option_text, tags_text),
+        "fabric": None,
+        "color": None,
         "attributes": attributes,
         "tags": [t for t in (clean_text(t, 60) for t in raw.tags[:30]) if t],
         "image_url": raw.image_url,
